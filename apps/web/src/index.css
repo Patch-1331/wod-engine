@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --bg: #eef0ea;
+  --surface: #ffffff;
+  --ink: #1e2422;
+  --ink-soft: #4b5450;
+  --ink-faint: #7c857f;
+  --border: #d7dad2;
+  --accent: #b4740f;
+  --accent-strong: #8f5a0b;
+  --accent-tint: #f2e2c4;
+  --accent-2: #2e6259;
+  --accent-2-tint: #dcebe7;
+
+  --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+}

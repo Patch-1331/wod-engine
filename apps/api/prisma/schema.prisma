@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// v1 stub: one implicit row, unused by the UI. Exists so v2 multi-user/auth
+// is additive rather than a migration.
+model User {
+  id String @id @default(cuid())
+}
+
+model Exercise {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  pattern  String // push | pull | squat | hinge | core | cardio
+  needsBar Boolean @default(false)
+  scalable Boolean @default(false)
+
+  altExerciseId String?
+  altExercise   Exercise?  @relation("ExerciseAlt", fields: [altExerciseId], references: [id])
+  substitutes   Exercise[] @relation("ExerciseAlt")
+
+  wodMovements WodMovement[]
+}
+
+model Wod {
+  id              String  @id @default(cuid())
+  name            String  @unique
+  type            String // amrap | for_time | emom | tabata
+  timeCapMinutes  Int
+  rounds          Int?
+  isNamed         Boolean @default(false)
+  dominantPattern String // push | pull | squat | hinge | core | cardio
+
+  movements   WodMovement[]
+  assignments DailyAssignment[]
+}
+
+model WodMovement {
+  id         String @id @default(cuid())
+  wodId      String
+  wod        Wod    @relation(fields: [wodId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  reps       Int
+  order      Int
+}
+
+// One active row read by the scheduler.
+model ScheduleRule {
+  id                  String @id @default(cuid())
+  maxDaysPerWeek      Int    @default(5)
+  patternCooldownDays Int    @default(5)
+}
+
+model DailyAssignment {
+  id     String @id @default(cuid())
+  date   String // ISO date, one assignment per day
+  wodId  String
+  wod    Wod    @relation(fields: [wodId], references: [id])
+  status String @default("scheduled") // scheduled | in_progress | completed | skipped
+
+  session WorkoutSession?
+  log     WorkoutLog?
+
+  @@unique([date])
+}
+
+// The live timer's state. roundSplits is JSON: [{ round, atSeconds }],
+// written on every "round complete" tap so a locked phone or a refresh
+// never loses progress.
+model WorkoutSession {
+  id           String   @id @default(cuid())
+  assignmentId String   @unique
+  assignment   DailyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  startedAt    DateTime @default(now())
+  capSeconds   Int
+  roundSplits  String   @default("[]") // JSON-encoded RoundSplit[]
+  status       String   @default("in_progress") // in_progress | completed | abandoned
+}
+
+model WorkoutLog {
+  id           String  @id @default(cuid())
+  assignmentId String  @unique
+  assignment   DailyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  resultType   String // time_seconds | rounds_reps | total_reps
+  resultValue  String // e.g. "1122" (seconds), "17+3" (rounds+reps), "220" (total reps)
+  rpe          Int?
+  notes        String?
+  createdAt    DateTime @default(now())
+}

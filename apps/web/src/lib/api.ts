@@ -1,7 +1,9 @@
+import type { TodayResponse } from "@wod-engine/shared";
+
 const API_BASE = "/api";
 
-async function request<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, init);
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText} for ${path}`);
   }
@@ -17,24 +19,8 @@ export type ApiExercise = {
   altExercise: { id: string; name: string } | null;
 };
 
-export type ApiWodMovement = {
-  reps: number;
-  order: number;
-  exercise: { id: string; name: string };
-};
-
-export type ApiWod = {
-  id: string;
-  name: string;
-  type: string;
-  timeCapMinutes: number;
-  rounds: number | null;
-  isNamed: boolean;
-  dominantPattern: string;
-  movements: ApiWodMovement[];
-};
-
 export const api = {
   exercises: () => request<ApiExercise[]>("/exercises"),
-  wods: () => request<ApiWod[]>("/wods"),
+  today: () => request<TodayResponse>("/today"),
+  skipToday: () => request<TodayResponse>("/today/skip", { method: "POST" }),
 };

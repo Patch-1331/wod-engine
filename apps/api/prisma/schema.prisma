@@ -58,11 +58,11 @@ model ScheduleRule {
 }
 
 model DailyAssignment {
-  id     String @id @default(cuid())
+  id     String  @id @default(cuid())
   date   String // ISO date, one assignment per day
-  wodId  String
-  wod    Wod    @relation(fields: [wodId], references: [id])
-  status String @default("scheduled") // scheduled | in_progress | completed | skipped
+  wodId  String? // null for a rest day recorded before any WOD was generated
+  wod    Wod?    @relation(fields: [wodId], references: [id])
+  status String  @default("scheduled") // scheduled | in_progress | completed | skipped
 
   session WorkoutSession?
   log     WorkoutLog?

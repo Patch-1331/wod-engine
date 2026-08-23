@@ -17,12 +17,6 @@ export const workoutSessionSchema = z.object({
 });
 export type WorkoutSession = z.infer<typeof workoutSessionSchema>;
 
-export const startWorkoutSessionSchema = z.object({
-  assignmentId: z.string(),
-  capSeconds: z.number().int().positive(),
-});
-export type StartWorkoutSession = z.infer<typeof startWorkoutSessionSchema>;
-
 /** Sent on every "round complete" tap so a locked/refreshed screen never loses progress. */
 export const logRoundSplitSchema = z.object({
   round: z.number().int().positive(),

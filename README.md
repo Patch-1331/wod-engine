@@ -16,7 +16,7 @@ in `packages/shared`.
 ## Getting started
 
 ```bash
-npm install
+npm install   # also builds packages/shared (postinstall) — apps/api needs its compiled dist
 
 # API: generate the Prisma client, run the migration, seed the WOD library
 npm run prisma:generate --workspace apps/api
@@ -30,6 +30,11 @@ npm run dev:web   # http://localhost:5173
 
 Copy `apps/api/.env.example` to `apps/api/.env` first if it isn't there
 already.
+
+If you edit `packages/shared`, rebuild it before the API dev server will
+see the change — `npm run build --workspace packages/shared`, or run
+`npm run dev --workspace packages/shared` in a separate terminal to
+rebuild on save.
 
 ## Scripts (root)
 

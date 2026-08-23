@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { assignmentStatus } from "./enums";
 import { wodSchema } from "./wod";
+import { workoutSessionSchema } from "./session";
 
 export const todayAssignmentSchema = z.object({
   id: z.string(),
   date: z.string(),
   status: assignmentStatus,
   wod: wodSchema,
+  /** Present once a workout has been started — lets a reloaded/locked screen resume the timer. */
+  session: workoutSessionSchema.nullable(),
 });
 export type TodayAssignment = z.infer<typeof todayAssignmentSchema>;
 

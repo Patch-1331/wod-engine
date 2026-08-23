@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toSessionDto } from '../sessions/session.mapper';
 import {
   getWeekRange,
   isRestDay,
@@ -22,7 +23,7 @@ export class SchedulerService {
   async getToday(today: string) {
     const existing = await this.prisma.dailyAssignment.findUnique({
       where: { date: today },
-      include: { wod: { include: wodInclude } },
+      include: { wod: { include: wodInclude }, session: true },
     });
 
     if (existing) {
@@ -30,13 +31,16 @@ export class SchedulerService {
         date: today,
         isRestDay: existing.status === 'skipped',
         assignment:
-          existing.status === 'skipped'
+          existing.status === 'skipped' || !existing.wod
             ? null
             : {
                 id: existing.id,
                 date: existing.date,
                 status: existing.status,
                 wod: existing.wod,
+                session: existing.session
+                  ? toSessionDto(existing.session)
+                  : null,
               },
       };
     }
@@ -72,6 +76,7 @@ export class SchedulerService {
         date: created.date,
         status: created.status,
         wod: created.wod,
+        session: null,
       },
     };
   }

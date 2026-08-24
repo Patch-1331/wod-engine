@@ -12,21 +12,24 @@ import { mergeRoundSplit } from './session.logic';
 export class SessionsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Idempotent: an upsert with a no-op update, not a check-then-create — two
+   * concurrent calls (e.g. React's dev-mode double effect invocation) would
+   * otherwise race and the second lose to a unique-constraint error.
+   */
   async start(assignmentId: string): Promise<WorkoutSession> {
     const assignment = await this.prisma.dailyAssignment.findUnique({
       where: { id: assignmentId },
-      include: { wod: true, session: true },
+      include: { wod: true },
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
     if (!assignment.wod)
       throw new BadRequestException('Rest days have no workout to start');
 
-    if (assignment.session) {
-      return toSessionDto(assignment.session);
-    }
-
-    const session = await this.prisma.workoutSession.create({
-      data: {
+    const session = await this.prisma.workoutSession.upsert({
+      where: { assignmentId },
+      update: {},
+      create: {
         assignmentId,
         capSeconds: assignment.wod.timeCapMinutes * 60,
         roundSplits: '[]',
@@ -82,9 +85,13 @@ export class SessionsService {
     if (!session)
       throw new NotFoundException('No active session for this assignment');
 
+    const finishedAtSeconds = Math.round(
+      (Date.now() - session.startedAt.getTime()) / 1000,
+    );
+
     const updated = await this.prisma.workoutSession.update({
       where: { assignmentId },
-      data: { status: 'completed' },
+      data: { status: 'completed', finishedAtSeconds },
     });
 
     return toSessionDto(updated);

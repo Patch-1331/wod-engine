@@ -14,6 +14,8 @@ export const workoutSessionSchema = z.object({
   capSeconds: z.number().int().positive(),
   roundSplits: z.array(roundSplitSchema),
   status: sessionStatus,
+  /** Elapsed time when "Finish" was tapped — the natural score for a For Time WOD. */
+  finishedAtSeconds: z.number().int().nonnegative().nullable(),
 });
 export type WorkoutSession = z.infer<typeof workoutSessionSchema>;
 

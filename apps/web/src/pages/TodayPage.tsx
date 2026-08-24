@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
 export function TodayPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["today"],
@@ -34,7 +36,9 @@ export function TodayPage() {
     );
   }
 
-  const wod = data.assignment.wod;
+  const { id: assignmentId, wod, status } = data.assignment;
+  const isCompleted = status === "completed";
+  const isInProgress = status === "in_progress";
 
   return (
     <div className="p-6">
@@ -62,18 +66,30 @@ export function TodayPage() {
         ))}
       </div>
 
-      <button
-        className="mt-6 w-full rounded-md py-3 font-mono text-sm font-semibold tracking-wide text-white"
-        style={{ fontFamily: "var(--font-mono)", background: "var(--accent)" }}
-      >
-        START WORKOUT
-      </button>
-      <button
-        onClick={handleSkip}
-        className="mt-3 w-full text-center text-sm text-[var(--ink-faint)]"
-      >
-        Mark today as rest
-      </button>
+      {isCompleted ? (
+        <button
+          onClick={() => navigate(`/log/${assignmentId}`)}
+          className="mt-6 w-full rounded-md py-3 font-mono text-sm font-semibold tracking-wide text-white"
+          style={{ fontFamily: "var(--font-mono)", background: "var(--accent-2)" }}
+        >
+          VIEW RESULT
+        </button>
+      ) : (
+        <>
+          <button
+            onClick={() => navigate(`/workout/${assignmentId}`)}
+            className="mt-6 w-full rounded-md py-3 font-mono text-sm font-semibold tracking-wide text-white"
+            style={{ fontFamily: "var(--font-mono)", background: "var(--accent)" }}
+          >
+            {isInProgress ? "RESUME WORKOUT" : "START WORKOUT"}
+          </button>
+          {!isInProgress && (
+            <button onClick={handleSkip} className="mt-3 w-full text-center text-sm text-[var(--ink-faint)]">
+              Mark today as rest
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }

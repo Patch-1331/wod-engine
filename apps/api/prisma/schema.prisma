@@ -81,6 +81,7 @@ model WorkoutSession {
   capSeconds   Int
   roundSplits  String   @default("[]") // JSON-encoded RoundSplit[]
   status       String   @default("in_progress") // in_progress | completed | abandoned
+  finishedAtSeconds Int? // elapsed time when "Finish" was tapped — the natural score for a For Time WOD
 }
 
 model WorkoutLog {

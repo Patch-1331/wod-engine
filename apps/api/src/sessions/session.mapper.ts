@@ -13,5 +13,6 @@ export function toSessionDto(session: PrismaWorkoutSession): WorkoutSession {
     capSeconds: session.capSeconds,
     roundSplits: parseSplits(session.roundSplits),
     status: session.status as WorkoutSession['status'],
+    finishedAtSeconds: session.finishedAtSeconds,
   };
 }

@@ -180,9 +180,10 @@ const wods: WodSeed[] = [
     rounds: 16,
     isNamed: false,
     dominantPattern: "push",
+    // True to the name: even minutes push, odd minutes pull — exactly two
+    // movements alternating, not a three-way rotation.
     movements: [
       { exercise: "Push-up", reps: 12 },
-      { exercise: "Air squat", reps: 15 },
       { exercise: "Pull-up", reps: 8 },
     ],
   },

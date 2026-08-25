@@ -1,8 +1,17 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { SchedulerService } from './scheduler.service';
 
+/**
+ * Local calendar date, not UTC — this runs on the user's own machine, and
+ * `toISOString()` would return yesterday's date for part of the evening in
+ * any timezone ahead of UTC.
+ */
 function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 @Controller()

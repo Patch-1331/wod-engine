@@ -78,6 +78,24 @@ export class SessionsService {
     return toSessionDto(updated);
   }
 
+  async setRoundSplit(
+    assignmentId: string,
+    roundSplitCount: number | null,
+  ): Promise<WorkoutSession> {
+    const session = await this.prisma.workoutSession.findUnique({
+      where: { assignmentId },
+    });
+    if (!session)
+      throw new NotFoundException('No active session for this assignment');
+
+    const updated = await this.prisma.workoutSession.update({
+      where: { assignmentId },
+      data: { roundSplitCount },
+    });
+
+    return toSessionDto(updated);
+  }
+
   async finish(assignmentId: string): Promise<WorkoutSession> {
     const session = await this.prisma.workoutSession.findUnique({
       where: { assignmentId },

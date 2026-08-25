@@ -16,6 +16,8 @@ export const workoutSessionSchema = z.object({
   status: sessionStatus,
   /** Elapsed time when "Finish" was tapped — the natural score for a For Time WOD. */
   finishedAtSeconds: z.number().int().nonnegative().nullable(),
+  /** Optional user-chosen round count to break high-rep movements into; null = unsplit. */
+  roundSplitCount: z.number().int().positive().nullable(),
 });
 export type WorkoutSession = z.infer<typeof workoutSessionSchema>;
 
@@ -25,3 +27,8 @@ export const logRoundSplitSchema = z.object({
   atSeconds: z.number().int().nonnegative(),
 });
 export type LogRoundSplit = z.infer<typeof logRoundSplitSchema>;
+
+export const setRoundSplitRequestSchema = z.object({
+  roundSplitCount: z.number().int().positive().nullable(),
+});
+export type SetRoundSplitRequest = z.infer<typeof setRoundSplitRequestSchema>;

@@ -1,6 +1,7 @@
 import type {
   LogResultRequest,
   RoundSplit,
+  SetRoundSplitRequest,
   TodayResponse,
   WorkoutLog,
   WorkoutLogListItem,
@@ -47,6 +48,8 @@ export const api = {
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/rounds`, round),
   finishSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/finish`),
+  setRoundSplit: (assignmentId: string, body: SetRoundSplitRequest) =>
+    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/split`, body),
 
   saveLog: (assignmentId: string, body: LogResultRequest) =>
     postJson<WorkoutLog>(`/assignments/${assignmentId}/log`, body),

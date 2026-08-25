@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { logRoundSplitSchema } from '@wod-engine/shared';
+import {
+  logRoundSplitSchema,
+  setRoundSplitRequestSchema,
+} from '@wod-engine/shared';
 import { validateBody } from '../common/validate';
 import { SessionsService } from './sessions.service';
 
@@ -26,5 +29,14 @@ export class SessionsController {
   @Post('finish')
   finish(@Param('assignmentId') assignmentId: string) {
     return this.sessionsService.finish(assignmentId);
+  }
+
+  @Post('split')
+  setRoundSplit(
+    @Param('assignmentId') assignmentId: string,
+    @Body() body: unknown,
+  ) {
+    const { roundSplitCount } = validateBody(setRoundSplitRequestSchema, body);
+    return this.sessionsService.setRoundSplit(assignmentId, roundSplitCount);
   }
 }

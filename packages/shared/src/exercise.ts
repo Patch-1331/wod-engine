@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { movementPattern } from "./enums";
+import { movementPattern, progressionLine } from "./enums";
 
 export const exerciseSchema = z.object({
   id: z.string(),
@@ -7,6 +7,8 @@ export const exerciseSchema = z.object({
   pattern: movementPattern,
   needsBar: z.boolean(),
   scalable: z.boolean(),
+  line: progressionLine.nullable(),
+  rung: z.number().int().nonnegative().nullable(),
   altExerciseId: z.string().nullable(),
 });
 export type Exercise = z.infer<typeof exerciseSchema>;

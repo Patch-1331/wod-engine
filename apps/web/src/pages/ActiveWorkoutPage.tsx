@@ -63,6 +63,20 @@ export function ActiveWorkoutPage() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: () => api.cancelSession(assignmentId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["today"] });
+      navigate("/");
+    },
+  });
+
+  function handleCancel() {
+    if (window.confirm("Cancel this workout? Your progress won't be saved.")) {
+      cancelMutation.mutate();
+    }
+  }
+
   const splitMutation = useMutation({
     mutationFn: (roundSplitCount: number | null) => api.setRoundSplit(assignmentId, { roundSplitCount }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today"] }),
@@ -100,9 +114,14 @@ export function ActiveWorkoutPage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden" style={{ background: "#1E2422", color: "#ECEFE6" }}>
       <div className="flex items-center justify-between px-5 pt-5">
-        <span className="font-mono text-[11px] tracking-wide" style={{ color: "#6FAA9C", fontFamily: "var(--font-mono)" }}>
-          CUES ON
-        </span>
+        <button
+          onClick={handleCancel}
+          disabled={cancelMutation.isPending}
+          className="font-mono text-[11px] font-semibold tracking-wide"
+          style={{ color: "#B4574E", fontFamily: "var(--font-mono)" }}
+        >
+          CANCEL
+        </button>
         <button
           onClick={() => finishMutation.mutate()}
           disabled={finishMutation.isPending}
@@ -115,7 +134,7 @@ export function ActiveWorkoutPage() {
 
       <div className="pt-5 text-center">
         <div className="font-mono text-xs tracking-wide" style={{ color: "#767E6E", fontFamily: "var(--font-mono)" }}>
-          {wod.name.toUpperCase()} · {wod.type.toUpperCase()} {wod.timeCapMinutes}
+          {wod.name.toUpperCase()} · {wod.type.toUpperCase()} {wod.timeCapMinutes} · CUES ON
         </div>
         <div
           className="mt-1.5 font-mono text-6xl font-bold"

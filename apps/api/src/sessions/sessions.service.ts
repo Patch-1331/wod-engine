@@ -114,4 +114,23 @@ export class SessionsService {
 
     return toSessionDto(updated);
   }
+
+  async cancel(assignmentId: string): Promise<void> {
+    const session = await this.prisma.workoutSession.findUnique({
+      where: { assignmentId },
+    });
+    if (!session)
+      throw new NotFoundException('No active session for this assignment');
+    if (session.status === 'completed') {
+      throw new BadRequestException('Session is already completed');
+    }
+
+    // Deleted rather than kept as "abandoned" so a later Start Workout tap
+    // creates a clean session instead of resuming a dead one.
+    await this.prisma.workoutSession.delete({ where: { assignmentId } });
+    await this.prisma.dailyAssignment.update({
+      where: { id: assignmentId },
+      data: { status: 'scheduled' },
+    });
+  }
 }

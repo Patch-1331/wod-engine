@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+} from '@nestjs/common';
 import {
   logRoundSplitSchema,
   setRoundSplitRequestSchema,
@@ -29,6 +37,12 @@ export class SessionsController {
   @Post('finish')
   finish(@Param('assignmentId') assignmentId: string) {
     return this.sessionsService.finish(assignmentId);
+  }
+
+  @Delete()
+  @HttpCode(204)
+  cancel(@Param('assignmentId') assignmentId: string) {
+    return this.sessionsService.cancel(assignmentId);
   }
 
   @Post('split')

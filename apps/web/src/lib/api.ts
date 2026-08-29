@@ -15,6 +15,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText} for ${path}`);
   }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -48,6 +49,8 @@ export const api = {
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/rounds`, round),
   finishSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/finish`),
+  cancelSession: (assignmentId: string) =>
+    request<void>(`/assignments/${assignmentId}/session`, { method: "DELETE" }),
   setRoundSplit: (assignmentId: string, body: SetRoundSplitRequest) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/split`, body),
 

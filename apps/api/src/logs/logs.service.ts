@@ -97,7 +97,7 @@ export class LogsService {
       changes.map((c) =>
         this.prisma.skillLevel.update({
           where: { line: c.line },
-          data: { rung: c.to },
+          data: { rung: c.to, lastChange: c.to > c.from ? 'advanced' : 'dropped' },
         }),
       ),
     );

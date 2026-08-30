@@ -9,22 +9,36 @@ import type {
   WorkoutLogListItem,
 } from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { computeRungChanges } from './advancement.logic';
 
 @Injectable()
 export class LogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Creates or replaces the log for an assignment, and marks it completed. */
+  /**
+   * Creates or replaces the log for an assignment, and marks it completed.
+   * The advancement rule only fires on first creation — editing an already-
+   * logged result (fixing a typo, adding notes later) doesn't re-run it,
+   * since re-running against a rung that already moved would double-advance.
+   */
   async upsert(
     assignmentId: string,
     body: LogResultRequest,
   ): Promise<WorkoutLog> {
     const assignment = await this.prisma.dailyAssignment.findUnique({
       where: { id: assignmentId },
+      include: {
+        wod: { include: { movements: { include: { exercise: true } } } },
+        session: true,
+      },
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
-    if (!assignment.wodId)
+    if (!assignment.wodId || !assignment.wod)
       throw new BadRequestException('Rest days have nothing to log');
+
+    const isFirstLog =
+      (await this.prisma.workoutLog.findUnique({ where: { assignmentId } })) ===
+      null;
 
     const data = {
       resultType: body.resultType,
@@ -44,7 +58,49 @@ export class LogsService {
       data: { status: 'completed' },
     });
 
+    if (isFirstLog && assignment.session) {
+      await this.applyAdvancement(assignment.wod.movements, assignment.session);
+    }
+
     return toLogDto(log);
+  }
+
+  /** Advances or drops progression lines (Feature #2) per the 3x8-to-3x5 rule. */
+  private async applyAdvancement(
+    movements: { reps: number; exercise: { line: string | null } }[],
+    session: { roundSplits: string; roundSplitCount: number | null },
+  ): Promise<void> {
+    const completedRounds = (JSON.parse(session.roundSplits) as unknown[])
+      .length;
+
+    const [skillLevels, linedExercises] = await Promise.all([
+      this.prisma.skillLevel.findMany(),
+      this.prisma.exercise.findMany({ where: { line: { not: null } } }),
+    ]);
+
+    const currentRung = new Map(skillLevels.map((s) => [s.line, s.rung]));
+    const maxRungByLine = new Map<string, number>();
+    for (const e of linedExercises) {
+      if (!e.line || e.rung === null) continue;
+      maxRungByLine.set(e.line, Math.max(maxRungByLine.get(e.line) ?? 0, e.rung));
+    }
+
+    const changes = computeRungChanges(
+      movements,
+      completedRounds,
+      session.roundSplitCount,
+      currentRung,
+      maxRungByLine,
+    );
+
+    await Promise.all(
+      changes.map((c) =>
+        this.prisma.skillLevel.update({
+          where: { line: c.line },
+          data: { rung: c.to },
+        }),
+      ),
+    );
   }
 
   async getForAssignment(assignmentId: string): Promise<WorkoutLog | null> {

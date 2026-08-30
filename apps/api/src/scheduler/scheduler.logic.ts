@@ -107,3 +107,41 @@ export function isRestDay(
 ): boolean {
   return assignedDaysThisWeek >= maxDaysPerWeek;
 }
+
+export type ExerciseWithLine = {
+  line: string | null;
+};
+
+/**
+ * Swaps each movement's exercise for the one at the user's current rung on
+ * that movement's line, so a generated WOD reflects the user's actual level
+ * instead of always Rx (Feature #2). Reps are left untouched — only the
+ * exercise identity changes, matching "preserve function" (source 01 in the
+ * design doc): same rep scheme, movement scaled within its own pattern.
+ *
+ * Movements whose exercise isn't on a tracked line (`line === null`, e.g.
+ * cardio) pass through unchanged, as does any movement where no rung is on
+ * record or no exercise exists at that line+rung — a curated WOD should
+ * never end up with a hole in its movement list because of a data gap.
+ */
+export function applyCurrentRung<
+  M extends { exercise: E },
+  E extends ExerciseWithLine,
+>(
+  movements: M[],
+  currentRung: Map<string, number>,
+  exerciseAtRung: Map<string, E>, // key: `${line}:${rung}`
+): M[] {
+  return movements.map((m) => {
+    const line = m.exercise.line;
+    if (!line) return m;
+
+    const rung = currentRung.get(line);
+    if (rung === undefined) return m;
+
+    const substitute = exerciseAtRung.get(`${line}:${rung}`);
+    if (!substitute) return m;
+
+    return { ...m, exercise: substitute };
+  });
+}

@@ -34,6 +34,16 @@ model Exercise {
   wodMovements WodMovement[]
 }
 
+// Current rung per progression line — one row per line, v1 single-user (see
+// User). Read by the scheduler when generating a WOD and advanced/dropped
+// by the 3x8-to-3x5 rule after a result is logged (Feature #2).
+model SkillLevel {
+  id        String   @id @default(cuid())
+  line      String   @unique // push_horizontal | push_vertical | pull | squat | hinge | core_dynamic | core_hold | core_side
+  rung      Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
 model Wod {
   id              String  @id @default(cuid())
   name            String  @unique

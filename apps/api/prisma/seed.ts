@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { progressionLine } from "@wod-engine/shared";
 
 const prisma = new PrismaClient();
 
@@ -317,6 +318,16 @@ async function main() {
   if (!rule) {
     await prisma.scheduleRule.create({
       data: { maxDaysPerWeek: 5, patternCooldownDays: 5 },
+    });
+  }
+
+  console.log("Seeding skill levels...");
+  for (const line of progressionLine.options) {
+    // Upsert with a no-op update so re-seeding never resets real progress.
+    await prisma.skillLevel.upsert({
+      where: { line },
+      update: {},
+      create: { line, rung: 0 },
     });
   }
 

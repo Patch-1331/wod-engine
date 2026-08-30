@@ -2,6 +2,8 @@ import type {
   LogResultRequest,
   RoundSplit,
   SetRoundSplitRequest,
+  SetSkillLevelRequest,
+  SkillLevel,
   TodayResponse,
   WorkoutLog,
   WorkoutLogListItem,
@@ -24,6 +26,14 @@ function postJson<T>(path: string, body?: unknown) {
     method: "POST",
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+function patchJson<T>(path: string, body: unknown) {
+  return request<T>(path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
 }
 
@@ -60,4 +70,8 @@ export const api = {
     postJson<WorkoutLog>(`/assignments/${assignmentId}/log`, body),
   getLog: (assignmentId: string) => request<WorkoutLog | null>(`/assignments/${assignmentId}/log`),
   logs: () => request<WorkoutLogListItem[]>("/logs"),
+
+  skillLevels: () => request<SkillLevel[]>("/skill-levels"),
+  setSkillLevel: (line: string, body: SetSkillLevelRequest) =>
+    patchJson<SkillLevel>(`/skill-levels/${line}`, body),
 };

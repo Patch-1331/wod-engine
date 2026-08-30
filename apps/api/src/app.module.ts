@@ -7,6 +7,7 @@ import { WodsModule } from './wods/wods.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { LogsModule } from './logs/logs.module';
+import { SkillLevelsModule } from './skill-levels/skill-levels.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { LogsModule } from './logs/logs.module';
     SchedulerModule,
     SessionsModule,
     LogsModule,
+    SkillLevelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

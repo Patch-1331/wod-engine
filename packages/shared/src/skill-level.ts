@@ -9,3 +9,9 @@ export const skillLevelSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type SkillLevel = z.infer<typeof skillLevelSchema>;
+
+/** Manual override — set a line's rung directly (e.g. the automatic rule got it wrong). */
+export const setSkillLevelRequestSchema = z.object({
+  rung: z.number().int().nonnegative(),
+});
+export type SetSkillLevelRequest = z.infer<typeof setSkillLevelRequestSchema>;

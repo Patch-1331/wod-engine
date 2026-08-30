@@ -33,6 +33,8 @@ export type ApiExercise = {
   pattern: string;
   needsBar: boolean;
   scalable: boolean;
+  line: string | null;
+  rung: number | null;
   altExercise: { id: string; name: string } | null;
 };
 

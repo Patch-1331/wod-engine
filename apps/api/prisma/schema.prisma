@@ -20,6 +20,13 @@ model Exercise {
   needsBar Boolean @default(false)
   scalable Boolean @default(false)
 
+  // Progression tracking (Feature #2) — finer-grained than `pattern`, since a
+  // pattern like push or core actually contains multiple independent skill
+  // lines (push_horizontal vs push_vertical; core_dynamic/core_hold/core_side).
+  // Null for exercises not yet part of a tracked ladder (e.g. cardio).
+  line String?
+  rung Int? // position within that line's chain, 0-indexed
+
   altExerciseId String?
   altExercise   Exercise?  @relation("ExerciseAlt", fields: [altExerciseId], references: [id])
   substitutes   Exercise[] @relation("ExerciseAlt")

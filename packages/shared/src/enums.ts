@@ -10,6 +10,23 @@ export const movementPattern = z.enum([
 ]);
 export type MovementPattern = z.infer<typeof movementPattern>;
 
+/**
+ * Finer-grained than MovementPattern — a pattern like push or core actually
+ * contains multiple independent progression ladders (see docs/plan.md and
+ * the "Scaling the Ladder" design doc for Feature #2).
+ */
+export const progressionLine = z.enum([
+  "push_horizontal",
+  "push_vertical",
+  "pull",
+  "squat",
+  "hinge",
+  "core_dynamic",
+  "core_hold",
+  "core_side",
+]);
+export type ProgressionLine = z.infer<typeof progressionLine>;
+
 export const wodType = z.enum(["amrap", "for_time", "emom", "tabata"]);
 export type WodType = z.infer<typeof wodType>;
 

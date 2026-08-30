@@ -8,39 +8,72 @@ type ExerciseSeed = {
   needsBar?: boolean;
   scalable?: boolean;
   alt?: string; // name of the no-equipment substitute
+  // Progression tracking (Feature #2) — line groups exercises into an
+  // ordered chain; rung is this exercise's 0-indexed position in it. See
+  // the "Scaling the Ladder" design doc for why these 8 lines exist instead
+  // of tracking progress per `pattern`.
+  line?: string;
+  rung?: number;
 };
 
 const exercises: ExerciseSeed[] = [
-  { name: "Push-up", pattern: "push", alt: "Knee push-up" },
-  { name: "Knee push-up", pattern: "push" },
-  { name: "Pike push-up", pattern: "push", scalable: true, alt: "Incline pike push-up" },
-  { name: "Incline pike push-up", pattern: "push" },
-  { name: "Handstand push-up", pattern: "push", scalable: true, alt: "Pike push-up" },
-  { name: "Pull-up", pattern: "pull", needsBar: true, alt: "Supermans + reverse snow angels" },
-  { name: "Chin-up", pattern: "pull", needsBar: true, alt: "Supermans + reverse snow angels" },
-  { name: "Supermans + reverse snow angels", pattern: "pull" },
-  { name: "Hanging knee raise", pattern: "pull", needsBar: true, alt: "Lying leg raise" },
-  { name: "Lying leg raise", pattern: "core" },
-  { name: "Toes-to-bar", pattern: "pull", needsBar: true, alt: "V-up" },
-  { name: "Air squat", pattern: "squat" },
+  // Push · Horizontal
+  { name: "Knee push-up", pattern: "push", line: "push_horizontal", rung: 0 },
+  { name: "Push-up", pattern: "push", alt: "Knee push-up", line: "push_horizontal", rung: 1 },
+  { name: "Diamond push-up", pattern: "push", line: "push_horizontal", rung: 2 },
+  { name: "Archer push-up", pattern: "push", line: "push_horizontal", rung: 3 },
+
+  // Push · Vertical
+  { name: "Incline pike push-up", pattern: "push", line: "push_vertical", rung: 0 },
+  { name: "Pike push-up", pattern: "push", scalable: true, alt: "Incline pike push-up", line: "push_vertical", rung: 1 },
+  { name: "Handstand push-up", pattern: "push", scalable: true, alt: "Pike push-up", line: "push_vertical", rung: 2 },
+
+  // Pull
+  { name: "Supermans + reverse snow angels", pattern: "pull", line: "pull", rung: 0 },
+  { name: "Negative pull-up", pattern: "pull", needsBar: true, alt: "Supermans + reverse snow angels", line: "pull", rung: 1 },
+  { name: "Chin-up", pattern: "pull", needsBar: true, alt: "Supermans + reverse snow angels", line: "pull", rung: 2 },
+  { name: "Pull-up", pattern: "pull", needsBar: true, alt: "Supermans + reverse snow angels", line: "pull", rung: 3 },
+
+  // Squat
+  { name: "Air squat", pattern: "squat", line: "squat", rung: 0 },
+  { name: "Reverse lunge", pattern: "squat", line: "squat", rung: 1 },
+  { name: "Assisted pistol", pattern: "squat", line: "squat", rung: 2 },
+  { name: "Pistol squat", pattern: "squat", scalable: true, alt: "Assisted pistol", line: "squat", rung: 3 },
+  // Siblings kept in the pool but not on the main squat line
   { name: "Jump squat", pattern: "squat", alt: "Air squat" },
   { name: "Walking lunge", pattern: "squat" },
-  { name: "Reverse lunge", pattern: "squat" },
-  { name: "Pistol squat", pattern: "squat", scalable: true, alt: "Assisted pistol" },
-  { name: "Assisted pistol", pattern: "squat" },
-  { name: "Glute bridge", pattern: "hinge" },
-  { name: "Single-leg glute bridge", pattern: "hinge", alt: "Glute bridge" },
-  { name: "Superman", pattern: "hinge" },
+
+  // Hinge
+  { name: "Glute bridge", pattern: "hinge", line: "hinge", rung: 0 },
+  { name: "Single-leg glute bridge", pattern: "hinge", alt: "Glute bridge", line: "hinge", rung: 1 },
+  { name: "Superman", pattern: "hinge", line: "hinge", rung: 2 },
+  { name: "Single-leg superman", pattern: "hinge", line: "hinge", rung: 3 },
   { name: "Broad jump", pattern: "hinge" },
+
+  // Core · Dynamic (leg raises) — Hanging knee raise / Toes-to-bar were
+  // previously tagged `pattern: pull` since they use the bar; they're
+  // leg-raise work, not pulling, so they move to `core` here.
+  { name: "Tuck-up", pattern: "core", line: "core_dynamic", rung: 0 },
+  { name: "V-up", pattern: "core", alt: "Tuck-up", line: "core_dynamic", rung: 1 },
+  { name: "Lying leg raise", pattern: "core", line: "core_dynamic", rung: 2 },
+  { name: "Hanging knee raise", pattern: "core", needsBar: true, alt: "Lying leg raise", line: "core_dynamic", rung: 3 },
+  { name: "Toes-to-bar", pattern: "core", needsBar: true, alt: "V-up", line: "core_dynamic", rung: 4 },
   { name: "Sit-up", pattern: "core" },
-  { name: "V-up", pattern: "core", alt: "Tuck-up" },
-  { name: "Tuck-up", pattern: "core" },
-  { name: "Plank hold", pattern: "core", alt: "Knee plank" },
-  { name: "Knee plank", pattern: "core" },
-  { name: "Side plank", pattern: "core", alt: "Knee side plank" },
-  { name: "Knee side plank", pattern: "core" },
+
+  // Core · Anti-extension
+  { name: "Knee plank", pattern: "core", line: "core_hold", rung: 0 },
+  { name: "Plank hold", pattern: "core", alt: "Knee plank", line: "core_hold", rung: 1 },
+  { name: "Long-lever plank", pattern: "core", line: "core_hold", rung: 2 },
+
+  // Core · Anti-rotation
+  { name: "Knee side plank", pattern: "core", line: "core_side", rung: 0 },
+  { name: "Side plank", pattern: "core", alt: "Knee side plank", line: "core_side", rung: 1 },
+
+  // Core · not yet on a tracked line
   { name: "Hollow hold", pattern: "core", alt: "Tucked hollow hold" },
   { name: "Tucked hollow hold", pattern: "core" },
+
+  // Cardio — not part of a progression line
   { name: "Burpee", pattern: "cardio", alt: "Squat thrust" },
   { name: "Squat thrust", pattern: "cardio" },
   { name: "Mountain climber", pattern: "cardio" },
@@ -209,8 +242,21 @@ async function main() {
   for (const e of exercises) {
     const row = await prisma.exercise.upsert({
       where: { name: e.name },
-      update: { pattern: e.pattern, needsBar: e.needsBar ?? false, scalable: e.scalable ?? false },
-      create: { name: e.name, pattern: e.pattern, needsBar: e.needsBar ?? false, scalable: e.scalable ?? false },
+      update: {
+        pattern: e.pattern,
+        needsBar: e.needsBar ?? false,
+        scalable: e.scalable ?? false,
+        line: e.line ?? null,
+        rung: e.rung ?? null,
+      },
+      create: {
+        name: e.name,
+        pattern: e.pattern,
+        needsBar: e.needsBar ?? false,
+        scalable: e.scalable ?? false,
+        line: e.line ?? null,
+        rung: e.rung ?? null,
+      },
     });
     idByName.set(e.name, row.id);
   }

@@ -32,9 +32,11 @@ export class SkillLevelsService {
       );
     }
 
+    // Clears lastChange — a manual correction isn't the automatic rule's
+    // achievement to celebrate on the Stats "level up" banner (#10).
     const updated = await this.prisma.skillLevel.update({
       where: { line },
-      data: { rung },
+      data: { rung, lastChange: null },
     });
     return toDto(updated);
   }
@@ -45,11 +47,13 @@ function toDto(row: {
   line: string;
   rung: number;
   updatedAt: Date;
+  lastChange: string | null;
 }): SkillLevel {
   return {
     id: row.id,
     line: row.line as SkillLevel['line'],
     rung: row.rung,
     updatedAt: row.updatedAt.toISOString(),
+    lastChange: row.lastChange as SkillLevel['lastChange'],
   };
 }

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import type { SkillLevel } from "@wod-engine/shared";
+import { api, type ApiExercise } from "../lib/api";
 import { computePRs, computePatternBalance, computeStreaks, formatResult } from "../lib/stats";
+import { buildLadders, lineLabel } from "../lib/progressions";
 
 const PATTERN_LABELS: Record<string, string> = {
   squat: "Squat",
@@ -15,9 +17,16 @@ const PATTERN_LABELS: Record<string, string> = {
 export function StatsPage() {
   const { data: logs, isLoading: logsLoading, error } = useQuery({ queryKey: ["logs"], queryFn: api.logs });
   const { data: today } = useQuery({ queryKey: ["today"], queryFn: api.today });
+  const { data: skillLevels } = useQuery({ queryKey: ["skillLevels"], queryFn: api.skillLevels });
+  const { data: exercises } = useQuery({ queryKey: ["exercises"], queryFn: api.exercises });
 
   if (logsLoading) return <p className="p-6 text-[var(--ink-faint)]">Loading stats…</p>;
   if (error) return <p className="p-6 text-red-700">Couldn't reach the API — is it running on :3001?</p>;
+
+  const progressions =
+    skillLevels && exercises ? (
+      <ProgressionsPanel exercises={exercises} skillLevels={skillLevels} todayIsoDate={today?.date ?? ""} />
+    ) : null;
 
   if (!logs || logs.length === 0) {
     return (
@@ -28,6 +37,7 @@ export function StatsPage() {
         <p className="mt-3 text-[var(--ink-faint)]">
           Streaks, PRs, and pattern balance land here once you've logged a workout.
         </p>
+        {progressions}
       </div>
     );
   }
@@ -87,7 +97,73 @@ export function StatsPage() {
           </div>
         ))}
       </div>
+
+      {progressions}
     </div>
+  );
+}
+
+function ProgressionsPanel({
+  exercises,
+  skillLevels,
+  todayIsoDate,
+}: {
+  exercises: ApiExercise[];
+  skillLevels: SkillLevel[];
+  todayIsoDate: string;
+}) {
+  const ladders = buildLadders(exercises, skillLevels, todayIsoDate);
+
+  return (
+    <>
+      <p className="mt-8 font-mono text-xs tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+        PROGRESSIONS
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {ladders.map((ladder) => (
+          <div key={ladder.line} className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="font-mono text-[11px] uppercase tracking-wide text-[var(--accent-2)]"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {lineLabel(ladder.line)}
+              </span>
+              {ladder.justAdvancedToday && (
+                <span
+                  className="rounded px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wide"
+                  style={{ fontFamily: "var(--font-mono)", color: "var(--accent-strong)", background: "var(--accent-tint)" }}
+                >
+                  LEVELED UP TODAY
+                </span>
+              )}
+            </div>
+            <div className="mt-2.5 flex flex-col gap-1.5">
+              {ladder.rungs.map((r) => (
+                <div key={r.rung} className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{
+                      background: r.status === "locked" ? "transparent" : r.status === "current" ? "var(--accent)" : "var(--accent-2)",
+                      border: r.status === "locked" ? "1.5px solid var(--border)" : "none",
+                    }}
+                  />
+                  <span
+                    className="text-xs"
+                    style={{
+                      color: r.status === "locked" ? "var(--ink-faint)" : r.status === "current" ? "var(--ink)" : "var(--ink-soft)",
+                      fontWeight: r.status === "current" ? 700 : 400,
+                    }}
+                  >
+                    {r.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 

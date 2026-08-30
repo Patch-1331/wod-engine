@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import type { Exercise } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { toSessionDto } from '../sessions/session.mapper';
 import {
+  applyCurrentRung,
   getWeekRange,
   isRestDay,
   pickWod,
@@ -37,7 +39,7 @@ export class SchedulerService {
                 id: existing.id,
                 date: existing.date,
                 status: existing.status,
-                wod: existing.wod,
+                wod: await this.scaleWodToCurrentRung(existing.wod),
                 session: existing.session
                   ? toSessionDto(existing.session)
                   : null,
@@ -75,9 +77,37 @@ export class SchedulerService {
         id: created.id,
         date: created.date,
         status: created.status,
-        wod: created.wod,
+        // wodId was just set from a freshly-picked candidate, so the relation is present.
+        wod: await this.scaleWodToCurrentRung(created.wod!),
         session: null,
       },
+    };
+  }
+
+  /**
+   * Replaces each movement's exercise with the one at the user's current
+   * rung on that movement's line (Feature #2) — the Wod row itself is a
+   * shared, reusable template, so substitution happens here at read time
+   * rather than by mutating WodMovement.
+   */
+  private async scaleWodToCurrentRung<
+    W extends {
+      movements: { exercise: Exercise }[];
+    },
+  >(wod: W): Promise<W> {
+    const [skillLevels, linedExercises] = await Promise.all([
+      this.prisma.skillLevel.findMany(),
+      this.prisma.exercise.findMany({ where: { line: { not: null } } }),
+    ]);
+
+    const currentRung = new Map(skillLevels.map((s) => [s.line, s.rung]));
+    const exerciseAtRung = new Map(
+      linedExercises.map((e) => [`${e.line}:${e.rung}`, e]),
+    );
+
+    return {
+      ...wod,
+      movements: applyCurrentRung(wod.movements, currentRung, exerciseAtRung),
     };
   }
 

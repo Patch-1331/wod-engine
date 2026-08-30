@@ -1,4 +1,6 @@
 import {
+  applyCurrentRung,
+  ExerciseWithLine,
   getWeekRange,
   isRestDay,
   pickWod,
@@ -122,5 +124,66 @@ describe('isRestDay', () => {
 
   it('is true if somehow over the cap', () => {
     expect(isRestDay(6, 5)).toBe(true);
+  });
+});
+
+describe('applyCurrentRung', () => {
+  type FakeExercise = ExerciseWithLine & { name: string };
+  const kneePushUp: FakeExercise = { name: 'Knee push-up', line: 'push_horizontal' };
+  const pushUp: FakeExercise = { name: 'Push-up', line: 'push_horizontal' };
+  const diamondPushUp: FakeExercise = { name: 'Diamond push-up', line: 'push_horizontal' };
+  const airSquat: FakeExercise = { name: 'Air squat', line: 'squat' };
+  const pistolSquat: FakeExercise = { name: 'Pistol squat', line: 'squat' };
+  const burpee: FakeExercise = { name: 'Burpee', line: null };
+
+  const exerciseAtRung = new Map<string, FakeExercise>([
+    ['push_horizontal:0', kneePushUp],
+    ['push_horizontal:1', pushUp],
+    ['push_horizontal:2', diamondPushUp],
+    ['squat:0', airSquat],
+    ['squat:3', pistolSquat],
+  ]);
+
+  it('substitutes a movement for the exercise at the current rung on its line', () => {
+    const movements = [{ reps: 10, exercise: pushUp }];
+    const currentRung = new Map([['push_horizontal', 0]]);
+    const result = applyCurrentRung(movements, currentRung, exerciseAtRung);
+    expect(result[0].exercise).toBe(kneePushUp);
+    expect(result[0].reps).toBe(10); // reps untouched — only the exercise changes
+  });
+
+  it('leaves a movement unchanged when its exercise has no tracked line', () => {
+    const movements = [{ reps: 15, exercise: burpee }];
+    const currentRung = new Map([['push_horizontal', 2]]);
+    const result = applyCurrentRung(movements, currentRung, exerciseAtRung);
+    expect(result[0].exercise).toBe(burpee);
+  });
+
+  it('leaves a movement unchanged when its line has no recorded rung', () => {
+    const movements = [{ reps: 5, exercise: pistolSquat }];
+    const currentRung = new Map<string, number>(); // no squat entry at all
+    const result = applyCurrentRung(movements, currentRung, exerciseAtRung);
+    expect(result[0].exercise).toBe(pistolSquat);
+  });
+
+  it('leaves a movement unchanged when no exercise exists at that line+rung', () => {
+    const movements = [{ reps: 5, exercise: airSquat }];
+    const currentRung = new Map([['squat', 99]]); // no exercise seeded at squat:99
+    const result = applyCurrentRung(movements, currentRung, exerciseAtRung);
+    expect(result[0].exercise).toBe(airSquat);
+  });
+
+  it('substitutes multiple movements independently across different lines', () => {
+    const movements = [
+      { reps: 10, exercise: pushUp },
+      { reps: 5, exercise: airSquat },
+    ];
+    const currentRung = new Map([
+      ['push_horizontal', 2],
+      ['squat', 3],
+    ]);
+    const result = applyCurrentRung(movements, currentRung, exerciseAtRung);
+    expect(result[0].exercise).toBe(diamondPushUp);
+    expect(result[1].exercise).toBe(pistolSquat);
   });
 });

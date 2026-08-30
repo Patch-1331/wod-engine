@@ -39,6 +39,11 @@ export function TodayPage() {
   const { id: assignmentId, wod, status } = data.assignment;
   const isCompleted = status === "completed";
   const isInProgress = status === "in_progress";
+  // True whenever at least one movement is on a tracked progression line
+  // (Feature #2) — the scheduler already substituted every such movement
+  // for the exercise at the user's current rung before this response left
+  // the API, so there's nothing left for the user to toggle or choose.
+  const isAutoScaled = wod.movements.some((m) => m.exercise.line !== null);
 
   return (
     <div className="p-6">
@@ -54,6 +59,20 @@ export function TodayPage() {
       <p className="mt-2 font-mono text-xs text-[var(--accent-strong)]" style={{ fontFamily: "var(--font-mono)" }}>
         {wod.type.toUpperCase()} · {wod.timeCapMinutes} MIN
       </p>
+
+      {isAutoScaled && (
+        <span
+          className="mt-3 inline-block rounded font-mono text-[11px] font-bold tracking-wide"
+          style={{
+            fontFamily: "var(--font-mono)",
+            color: "var(--accent-2)",
+            background: "var(--accent-2-tint)",
+            padding: "0.15rem 0.5rem",
+          }}
+        >
+          AUTO-SCALED TO YOUR LEVEL
+        </span>
+      )}
 
       <div className="mt-6 divide-y divide-[var(--border)] rounded-md border border-[var(--border)] bg-[var(--surface)] px-5">
         {wod.movements.map((m) => (

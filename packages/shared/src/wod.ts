@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { movementPattern, wodType } from "./enums";
+import { movementPattern, progressionLine, wodType } from "./enums";
 
 export const wodMovementSchema = z.object({
   id: z.string(),
@@ -10,6 +10,10 @@ export const wodMovementSchema = z.object({
     name: z.string(),
     pattern: movementPattern,
     needsBar: z.boolean(),
+    // Progression tracking (Feature #2) — null for exercises not on a
+    // tracked ladder (e.g. cardio). See ProgressionLine for why this is
+    // finer-grained than `pattern`.
+    line: progressionLine.nullable(),
   }),
 });
 export type WodMovement = z.infer<typeof wodMovementSchema>;

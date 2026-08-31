@@ -12,9 +12,15 @@
 const ADVANCE_THRESHOLD = 24; // 3 sets of 8
 const HOLD_FLOOR = 15; // 3 sets of 5 — below this, drop back a rung
 
+// A hold (e.g. plank) is timed in seconds, not counted in reps, so the same
+// 8:5 ratio is applied to a longer, hold-appropriate base unit (30s) instead
+// of the reps-based one (8 reps) — 3x30s advances, below 3x~19s drops.
+const ADVANCE_THRESHOLD_SECONDS = 90; // 3 sets of 30s
+const HOLD_FLOOR_SECONDS = 56; // 3 sets of ~19s (same 8:5 ratio as reps)
+
 export type MovementForAdvancement = {
   reps: number;
-  exercise: { line: string | null };
+  exercise: { line: string | null; unit?: string };
 };
 
 export type LineRungChange = {
@@ -74,12 +80,15 @@ export function computeRungChanges(
     if (from === undefined) continue; // no SkillLevel row for this line — nothing to change
 
     const totalReps = totalRepsForMovement(m, completedRounds, roundSplitCount);
+    const isSeconds = m.exercise.unit === 'seconds';
+    const advanceThreshold = isSeconds ? ADVANCE_THRESHOLD_SECONDS : ADVANCE_THRESHOLD;
+    const holdFloor = isSeconds ? HOLD_FLOOR_SECONDS : HOLD_FLOOR;
 
     let to = from;
-    if (totalReps >= ADVANCE_THRESHOLD) {
+    if (totalReps >= advanceThreshold) {
       const max = maxRungByLine.get(line) ?? from;
       to = Math.min(from + 1, max);
-    } else if (totalReps < HOLD_FLOOR) {
+    } else if (totalReps < holdFloor) {
       to = Math.max(from - 1, 0);
     }
 

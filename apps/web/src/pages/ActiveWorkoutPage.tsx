@@ -262,7 +262,7 @@ export function ActiveWorkoutPage() {
                 {m.exercise.name.toUpperCase()}
               </span>
               <span className="font-mono text-lg font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
-                {repsForMovement(m)}
+                {m.exercise.unit === "seconds" ? `${repsForMovement(m)}s` : repsForMovement(m)}
               </span>
             </div>
           ))}

@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { movementPattern, progressionLine, wodType } from "./enums";
+import { exerciseUnit, movementPattern, progressionLine, wodType } from "./enums";
 
 export const wodMovementSchema = z.object({
   id: z.string(),
+  // Count in whatever unit the exercise itself uses — see exercise.unit.
   reps: z.number().int().positive(),
   order: z.number().int().nonnegative(),
   exercise: z.object({
@@ -10,6 +11,7 @@ export const wodMovementSchema = z.object({
     name: z.string(),
     pattern: movementPattern,
     needsBar: z.boolean(),
+    unit: exerciseUnit,
     // Progression tracking (Feature #2) — null for exercises not on a
     // tracked ladder (e.g. cardio). See ProgressionLine for why this is
     // finer-grained than `pattern`.

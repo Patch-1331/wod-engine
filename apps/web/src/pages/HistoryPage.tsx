@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { formatResult } from "../lib/stats";
 
@@ -11,6 +12,7 @@ function formatDate(iso: string) {
 }
 
 export function HistoryPage() {
+  const navigate = useNavigate();
   const { data, isLoading, error } = useQuery({ queryKey: ["logs"], queryFn: api.logs });
 
   if (isLoading) return <p className="p-6 text-[var(--ink-faint)]">Loading history…</p>;
@@ -29,7 +31,11 @@ export function HistoryPage() {
       ) : (
         <div className="mt-5 divide-y divide-[var(--border)] rounded-md border border-[var(--border)] bg-[var(--surface)]">
           {data.map((log) => (
-            <div key={log.id} className="flex items-center justify-between gap-3 px-4 py-3">
+            <button
+              key={log.id}
+              onClick={() => navigate(`/log/${log.assignmentId}`)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            >
               <div className="min-w-0">
                 <p className="font-mono text-[11px] tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
                   {formatDate(log.date)}
@@ -52,7 +58,7 @@ export function HistoryPage() {
                   {formatResult(log.resultType, log.resultValue)}
                 </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

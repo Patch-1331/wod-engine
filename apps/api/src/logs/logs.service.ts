@@ -67,7 +67,10 @@ export class LogsService {
 
   /** Advances or drops progression lines (Feature #2) per the 3x8-to-3x5 rule. */
   private async applyAdvancement(
-    movements: { reps: number; exercise: { line: string | null } }[],
+    movements: {
+      reps: number;
+      exercise: { line: string | null; unit: string };
+    }[],
     session: { roundSplits: string; roundSplitCount: number | null },
   ): Promise<void> {
     const completedRounds = (JSON.parse(session.roundSplits) as unknown[])

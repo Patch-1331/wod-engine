@@ -19,6 +19,7 @@ model Exercise {
   pattern  String // push | pull | squat | hinge | core | cardio
   needsBar Boolean @default(false)
   scalable Boolean @default(false)
+  unit     String  @default("reps") // reps | seconds — seconds for timed holds (e.g. plank family)
 
   // Progression tracking (Feature #2) — finer-grained than `pattern`, since a
   // pattern like push or core actually contains multiple independent skill

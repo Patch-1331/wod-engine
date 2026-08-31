@@ -27,6 +27,10 @@ export const progressionLine = z.enum([
 ]);
 export type ProgressionLine = z.infer<typeof progressionLine>;
 
+/** What an Exercise's `reps` count actually measures — most movements count reps, but a hold (e.g. plank) is timed. */
+export const exerciseUnit = z.enum(["reps", "seconds"]);
+export type ExerciseUnit = z.infer<typeof exerciseUnit>;
+
 export const wodType = z.enum(["amrap", "for_time", "emom", "tabata"]);
 export type WodType = z.infer<typeof wodType>;
 

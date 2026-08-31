@@ -15,6 +15,8 @@ type ExerciseSeed = {
   // of tracking progress per `pattern`.
   line?: string;
   rung?: number;
+  // Defaults to "reps" — set to "seconds" for timed holds (plank family).
+  unit?: "reps" | "seconds";
 };
 
 const exercises: ExerciseSeed[] = [
@@ -61,10 +63,10 @@ const exercises: ExerciseSeed[] = [
   { name: "Toes-to-bar", pattern: "core", needsBar: true, alt: "V-up", line: "core_dynamic", rung: 4 },
   { name: "Sit-up", pattern: "core" },
 
-  // Core · Anti-extension
-  { name: "Knee plank", pattern: "core", line: "core_hold", rung: 0 },
-  { name: "Plank hold", pattern: "core", alt: "Knee plank", line: "core_hold", rung: 1 },
-  { name: "Long-lever plank", pattern: "core", line: "core_hold", rung: 2 },
+  // Core · Anti-extension — timed holds, not rep-counted.
+  { name: "Knee plank", pattern: "core", line: "core_hold", rung: 0, unit: "seconds" },
+  { name: "Plank hold", pattern: "core", alt: "Knee plank", line: "core_hold", rung: 1, unit: "seconds" },
+  { name: "Long-lever plank", pattern: "core", line: "core_hold", rung: 2, unit: "seconds" },
 
   // Core · Anti-rotation
   { name: "Knee side plank", pattern: "core", line: "core_side", rung: 0 },
@@ -179,7 +181,7 @@ const wods: WodSeed[] = [
     movements: [
       { exercise: "Sit-up", reps: 10 },
       { exercise: "Mountain climber", reps: 20 },
-      { exercise: "Plank hold", reps: 1 },
+      { exercise: "Plank hold", reps: 30 },
     ],
   },
   {
@@ -247,6 +249,7 @@ async function main() {
         pattern: e.pattern,
         needsBar: e.needsBar ?? false,
         scalable: e.scalable ?? false,
+        unit: e.unit ?? "reps",
         line: e.line ?? null,
         rung: e.rung ?? null,
       },
@@ -255,6 +258,7 @@ async function main() {
         pattern: e.pattern,
         needsBar: e.needsBar ?? false,
         scalable: e.scalable ?? false,
+        unit: e.unit ?? "reps",
         line: e.line ?? null,
         rung: e.rung ?? null,
       },

@@ -78,7 +78,7 @@ export function TodayPage() {
         {wod.movements.map((m) => (
           <div key={m.id} className="flex items-center justify-between py-3">
             <span className="font-mono text-lg font-semibold text-[var(--accent)]" style={{ fontFamily: "var(--font-mono)" }}>
-              {m.reps}
+              {m.exercise.unit === "seconds" ? `${m.reps}s` : m.reps}
             </span>
             <span className="font-semibold">{m.exercise.name.toUpperCase()}</span>
           </div>

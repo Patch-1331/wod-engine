@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useWakeLock } from "../lib/useWakeLock";
-import { roundCompleteCue, finishCue } from "../lib/cues";
+import { roundCompleteCue, finishCue, capReachedCue } from "../lib/cues";
 import { anchorMovement, computeRoundReps, roundsFromReps } from "../lib/roundSplit";
 
 function formatClock(totalSeconds: number): string {
@@ -48,6 +48,22 @@ export function ActiveWorkoutPage() {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [isFinished]);
+
+  // Cues the cap once, even if the user isn't watching the screen — doesn't
+  // force a stop, since AMRAP/EMOM etc. may still want a manual Finish tap.
+  const capReachedRef = useRef(false);
+  useEffect(() => {
+    capReachedRef.current = false;
+  }, [activeSession?.id]);
+  useEffect(() => {
+    if (!activeSession || isFinished || capReachedRef.current) return;
+    const startedAtMs = new Date(activeSession.startedAt).getTime();
+    const elapsed = Math.max(0, Math.floor((now - startedAtMs) / 1000));
+    if (elapsed >= activeSession.capSeconds) {
+      capReachedRef.current = true;
+      capReachedCue();
+    }
+  }, [now, activeSession, isFinished]);
 
   const logRoundMutation = useMutation({
     mutationFn: (round: { round: number; atSeconds: number }) => api.logRound(assignmentId, round),

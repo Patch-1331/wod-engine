@@ -33,3 +33,9 @@ export function finishCue() {
   vibrate([100, 60, 100]);
   beep(660, 200);
 }
+
+/** Fires once when the time cap is reached, whether or not the user taps Finish. */
+export function capReachedCue() {
+  vibrate([150, 80, 150, 80, 150]);
+  beep(440, 400);
+}

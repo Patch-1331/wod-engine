@@ -22,7 +22,7 @@ export function WeeklyTrainingDaysChart({ weeks, cap }: { weeks: WeekTrainingDay
   return (
     <div>
       <div className="flex items-center gap-1.5 text-xs text-[var(--ink-soft)]">
-        <span className="h-0 w-3 border-t-2 border-dashed" style={{ borderColor: "var(--accent-strong)" }} />
+        <span className="h-0 w-3 border-t-2 border-dashed" style={{ borderColor: "var(--ink-faint)" }} />
         {cap}-day cap
       </div>
       <div className="mt-3 overflow-x-auto">
@@ -38,7 +38,7 @@ export function WeeklyTrainingDaysChart({ weeks, cap }: { weeks: WeekTrainingDay
             y1={capY}
             x2={chartWidth}
             y2={capY}
-            stroke="var(--accent-strong)"
+            stroke="var(--ink-faint)"
             strokeWidth={1.5}
             strokeDasharray="4 3"
           />
@@ -53,7 +53,8 @@ export function WeeklyTrainingDaysChart({ weeks, cap }: { weeks: WeekTrainingDay
                   y={CHART_HEIGHT - height}
                   width={BAR_WIDTH}
                   height={height}
-                  fill={overCap ? "var(--accent-strong)" : "var(--accent-2)"}
+                  fill={overCap ? "var(--danger)" : "var(--glow)"}
+                  style={overCap ? undefined : { filter: "drop-shadow(0 0 4px var(--glow-tint))" }}
                 />
                 <text
                   x={x + BAR_WIDTH / 2}

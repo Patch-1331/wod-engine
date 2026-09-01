@@ -8,18 +8,18 @@ const tabs = [
 
 export function TabBar() {
   return (
-    <nav className="flex border-t border-[var(--border)] bg-[var(--surface)]">
+    <nav className="flex" style={{ borderTop: "1px solid var(--border)", background: "var(--panel)" }}>
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
           end={tab.to === "/"}
-          className={({ isActive }) =>
-            `flex-1 py-3 text-center font-mono text-[11px] tracking-wide ${
-              isActive ? "text-[var(--accent)]" : "text-[var(--ink-faint)]"
-            }`
-          }
-          style={{ fontFamily: "var(--font-mono)" }}
+          className="flex-1 py-3 text-center text-[11px] font-semibold tracking-[0.14em]"
+          style={({ isActive }) => ({
+            fontFamily: "var(--font-mono)",
+            color: isActive ? "var(--glow)" : "var(--ink-faint)",
+            textShadow: isActive ? "0 0 8px var(--glow-tint)" : "none",
+          })}
         >
           {tab.label.toUpperCase()}
         </NavLink>

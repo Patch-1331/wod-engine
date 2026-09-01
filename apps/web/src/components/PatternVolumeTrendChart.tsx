@@ -1,14 +1,62 @@
 import type { PatternWeekVolume } from "../lib/stats";
 
-const SERIES_COLORS: Record<string, string> = {
-  squat: "var(--accent)",
-  hinge: "var(--accent-2)",
-  push: "#7a6a9c",
-  pull: "#b0555c",
-  core: "#4d7ea8",
-  carry: "#8a8340",
-  monostructural: "var(--ink-faint)",
-};
+// Stable order so a given pattern always gets the same fill, regardless of
+// which patterns happen to appear in a given week's data.
+const PATTERN_ORDER = ["squat", "hinge", "push", "pull", "core", "carry", "monostructural"];
+
+// The theme has one accent hue (--glow) and status is meant to read by mark
+// or fill texture, not by color alone — so each series gets a distinct
+// pattern (solid / diagonal / dots / cross-hatch) at one of two tones
+// instead of a rainbow of hues.
+type FillKind = "solid" | "hatch" | "dots" | "cross";
+const FILL_STYLES: { kind: FillKind; tone: "glow" | "dim" }[] = [
+  { kind: "solid", tone: "glow" },
+  { kind: "hatch", tone: "glow" },
+  { kind: "dots", tone: "glow" },
+  { kind: "solid", tone: "dim" },
+  { kind: "hatch", tone: "dim" },
+  { kind: "dots", tone: "dim" },
+  { kind: "cross", tone: "dim" },
+];
+
+function fillIdFor(pattern: string): string {
+  const index = PATTERN_ORDER.indexOf(pattern);
+  const style = FILL_STYLES[index >= 0 ? index : 0];
+  return `pv-${style.kind}-${style.tone}`;
+}
+
+function PatternFillDefs() {
+  return (
+    <defs>
+      {FILL_STYLES.map(({ kind, tone }) => {
+        const id = `pv-${kind}-${tone}`;
+        const mark = tone === "glow" ? "var(--glow)" : "var(--glow-dim)";
+        if (kind === "solid") {
+          return null; // solid fills reference the color directly, no pattern needed
+        }
+        return (
+          <pattern key={id} id={id} width="6" height="6" patternUnits="userSpaceOnUse">
+            <rect width="6" height="6" fill="var(--glow-tint)" />
+            {kind === "hatch" && <line x1="0" y1="6" x2="6" y2="0" stroke={mark} strokeWidth="1.6" />}
+            {kind === "dots" && <circle cx="3" cy="3" r="1.3" fill={mark} />}
+            {kind === "cross" && (
+              <>
+                <line x1="0" y1="6" x2="6" y2="0" stroke={mark} strokeWidth="1.2" />
+                <line x1="0" y1="0" x2="6" y2="6" stroke={mark} strokeWidth="1.2" />
+              </>
+            )}
+          </pattern>
+        );
+      })}
+    </defs>
+  );
+}
+
+function fillFor(pattern: string): string {
+  const index = PATTERN_ORDER.indexOf(pattern);
+  const style = FILL_STYLES[index >= 0 ? index : 0];
+  return style.kind === "solid" ? (style.tone === "glow" ? "var(--glow)" : "var(--glow-dim)") : `url(#${fillIdFor(pattern)})`;
+}
 
 const CHART_HEIGHT = 120;
 const BAR_WIDTH = 22;
@@ -31,10 +79,18 @@ export function PatternVolumeTrendChart({ weeks }: { weeks: PatternWeekVolume[] 
 
   return (
     <div>
+      {/* Pattern fill defs are declared once and referenced by id from both the legend
+          swatches and the chart bars below — SVG resolves url(#id) document-wide, so
+          duplicating the <defs> per swatch would just create invalid duplicate ids. */}
+      <svg width="0" height="0" aria-hidden="true">
+        <PatternFillDefs />
+      </svg>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[var(--ink-soft)]">
         {patterns.map((p) => (
           <span key={p} className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm" style={{ background: SERIES_COLORS[p] ?? "var(--ink-faint)" }} />
+            <svg width="10" height="10" aria-hidden="true">
+              <rect width="10" height="10" fill={fillFor(p)} stroke="var(--border)" strokeWidth="0.5" />
+            </svg>
             {p}
           </span>
         ))}
@@ -64,7 +120,9 @@ export function PatternVolumeTrendChart({ weeks }: { weeks: PatternWeekVolume[] 
                       y={yOffset}
                       width={BAR_WIDTH}
                       height={height}
-                      fill={SERIES_COLORS[pattern] ?? "var(--ink-faint)"}
+                      fill={fillFor(pattern)}
+                      stroke="var(--panel)"
+                      strokeWidth="0.5"
                     />
                   );
                 })}

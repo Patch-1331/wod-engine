@@ -25,19 +25,24 @@ function TrendCard({ trend }: { trend: ForTimeTrend }) {
   const last = trend.points[trend.points.length - 1];
 
   return (
-    <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
-      <span className="font-semibold uppercase" style={{ fontFamily: "var(--font-display)" }}>
+    <div className="p-4" style={{ background: "var(--panel-2)", border: "1px solid var(--border)" }}>
+      <span className="font-semibold uppercase" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>
         {trend.wodName}
       </span>
       <svg role="img" aria-label={`Time trend for ${trend.wodName}`} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mt-2">
-        <path d={path} fill="none" stroke="var(--accent-2)" strokeWidth={1.5} />
+        <path d={path} fill="none" stroke="var(--glow)" strokeWidth={1.5} style={{ filter: "drop-shadow(0 0 3px var(--glow-tint))" }} />
         {coords.map((c, i) => (
-          <circle key={i} cx={c.x} cy={c.y} r={2.5} fill="var(--accent-2)" />
+          <circle key={i} cx={c.x} cy={c.y} r={2.5} fill="var(--glow)" />
         ))}
       </svg>
-      <div className="mt-1 flex items-center justify-between font-mono text-xs text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+      <div
+        className="mt-1 flex items-center justify-between text-xs"
+        style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink-faint)" }}
+      >
         <span>{formatResult("time_seconds", String(first.seconds))}</span>
-        <span className="font-semibold text-[var(--accent-strong)]">{formatResult("time_seconds", String(last.seconds))}</span>
+        <span className="font-semibold" style={{ color: "var(--glow)", textShadow: "0 0 6px var(--glow-tint)" }}>
+          {formatResult("time_seconds", String(last.seconds))}
+        </span>
       </div>
     </div>
   );

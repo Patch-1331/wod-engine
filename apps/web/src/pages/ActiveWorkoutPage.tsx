@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { useWakeLock } from "../lib/useWakeLock";
 import { roundCompleteCue, finishCue, capReachedCue } from "../lib/cues";
 import { anchorMovement, computeRoundReps, roundsFromReps } from "../lib/roundSplit";
+import { MinusIcon, PlusIcon } from "../components/StepperIcons";
 
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -87,11 +88,7 @@ export function ActiveWorkoutPage() {
     },
   });
 
-  function handleCancel() {
-    if (window.confirm("Cancel this workout? Your progress won't be saved.")) {
-      cancelMutation.mutate();
-    }
-  }
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   const splitMutation = useMutation({
     mutationFn: (roundSplitCount: number | null) => api.setRoundSplit(assignmentId, { roundSplitCount }),
@@ -128,60 +125,67 @@ export function ActiveWorkoutPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden" style={{ background: "#1E2422", color: "#ECEFE6" }}>
+    <div className="flex h-screen flex-col overflow-hidden" style={{ background: "var(--bg)", color: "var(--ink)" }}>
       <div className="flex items-center justify-between px-5 pt-5">
         <button
-          onClick={handleCancel}
+          onClick={() => setCancelConfirmOpen(true)}
           disabled={cancelMutation.isPending}
-          className="font-mono text-[11px] font-semibold tracking-wide"
-          style={{ color: "#B4574E", fontFamily: "var(--font-mono)" }}
+          className="text-[11px] font-semibold tracking-[0.14em]"
+          style={{ color: "var(--danger)", fontFamily: "var(--font-mono)" }}
         >
           CANCEL
         </button>
         <button
           onClick={() => finishMutation.mutate()}
           disabled={finishMutation.isPending}
-          className="font-mono text-sm font-semibold tracking-wide"
-          style={{ color: "#E3A73C", fontFamily: "var(--font-mono)" }}
+          className="text-sm font-bold tracking-[0.14em]"
+          style={{ color: "var(--glow)", fontFamily: "var(--font-mono)" }}
         >
           FINISH
         </button>
       </div>
 
       <div className="pt-5 text-center">
-        <div className="font-mono text-xs tracking-wide" style={{ color: "#767E6E", fontFamily: "var(--font-mono)" }}>
+        <div className="text-xs font-semibold tracking-[0.14em]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
           {wod.name.toUpperCase()} · {wod.type.toUpperCase()} {wod.timeCapMinutes} · CUES ON
         </div>
         <div
-          className="mt-1.5 font-mono text-6xl font-bold"
-          style={{ fontVariantNumeric: "tabular-nums", fontFamily: "var(--font-mono)" }}
+          className="mt-1.5 text-6xl font-bold"
+          style={{
+            fontVariantNumeric: "tabular-nums",
+            fontFamily: "var(--font-mono)",
+            color: "var(--glow)",
+            textShadow: "0 0 16px var(--glow-tint), 0 0 3px var(--glow)",
+          }}
         >
           {formatClock(elapsedSeconds)}
         </div>
-        <div className="mx-auto mt-3.5 h-1.5 w-72 max-w-[70vw] overflow-hidden rounded-full" style={{ background: "#303A29" }}>
-          <div className="h-full" style={{ width: `${progress * 100}%`, background: "#6FAA9C" }} />
+        <div className="mx-auto mt-3.5 h-1.5 w-72 max-w-[70vw] overflow-hidden" style={{ background: "var(--panel-2)", border: "1px solid var(--border)" }}>
+          <div className="h-full" style={{ width: `${progress * 100}%`, background: "var(--glow)", boxShadow: "0 0 8px var(--glow)" }} />
         </div>
-        <div className="mt-1.5 font-mono text-[11px]" style={{ color: "#767E6E", fontFamily: "var(--font-mono)" }}>
+        <div className="mt-1.5 text-[11px]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
           CAP {formatClock(activeSession.capSeconds)}
         </div>
       </div>
 
       <div className="py-5 text-center">
-        <div className="font-mono text-xs tracking-wide" style={{ color: "#767E6E", fontFamily: "var(--font-mono)" }}>
+        <div className="text-xs font-semibold tracking-[0.14em]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
           ROUND
         </div>
         <div
           className="text-8xl font-extrabold leading-none"
-          style={{ fontFamily: "var(--font-display)" }}
+          style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--glow)", textShadow: "0 0 16px var(--glow-tint), 0 0 3px var(--glow)" }}
         >
           {currentRound}
-          {wod.rounds ? <span className="text-4xl" style={{ color: "#767E6E" }}> / {wod.rounds}</span> : null}
+          {wod.rounds ? (
+            <span className="text-4xl" style={{ color: "var(--ink-faint)", textShadow: "none" }}> / {wod.rounds}</span>
+          ) : null}
         </div>
       </div>
 
       <div className="px-5 pb-2">
         <div className="flex items-center justify-between">
-          <div className="font-mono text-[11px] tracking-wide" style={{ color: "#767E6E", fontFamily: "var(--font-mono)" }}>
+          <div className="text-[11px] font-semibold tracking-[0.14em]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
             MOVEMENTS
           </div>
           <button
@@ -190,27 +194,35 @@ export function ActiveWorkoutPage() {
               setSplitMode("rounds");
               setSplitPanelOpen((v) => !v);
             }}
-            className="font-mono text-[11px] font-semibold tracking-wide"
-            style={{ color: roundSplitCount ? "#6FAA9C" : "#767E6E", fontFamily: "var(--font-mono)" }}
+            className="text-[11px] font-semibold tracking-[0.14em]"
+            style={{ color: roundSplitCount ? "var(--glow)" : "var(--ink-faint)", fontFamily: "var(--font-mono)" }}
           >
             {roundSplitCount ? `SPLIT ${roundSplitCount}×` : "SPLIT"}
           </button>
         </div>
 
         {splitPanelOpen && (
-          <div className="mt-2 rounded-lg p-3" style={{ background: "#252B24" }}>
+          <div className="mt-2 p-3" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
             <div className="flex gap-2">
               <button
                 onClick={() => setSplitMode("rounds")}
-                className="flex-1 rounded py-1.5 font-mono text-xs font-semibold"
-                style={splitMode === "rounds" ? { background: "#E3A73C", color: "#1E2422" } : { background: "#303A29", color: "#A8AF9E" }}
+                className="flex-1 py-1.5 text-xs font-semibold"
+                style={
+                  splitMode === "rounds"
+                    ? { background: "var(--glow)", color: "var(--bg)", fontFamily: "var(--font-mono)" }
+                    : { background: "var(--panel-2)", color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }
+                }
               >
                 BY ROUNDS
               </button>
               <button
                 onClick={() => setSplitMode("reps")}
-                className="flex-1 rounded py-1.5 font-mono text-xs font-semibold"
-                style={splitMode === "reps" ? { background: "#E3A73C", color: "#1E2422" } : { background: "#303A29", color: "#A8AF9E" }}
+                className="flex-1 py-1.5 text-xs font-semibold"
+                style={
+                  splitMode === "reps"
+                    ? { background: "var(--glow)", color: "var(--bg)", fontFamily: "var(--font-mono)" }
+                    : { background: "var(--panel-2)", color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }
+                }
               >
                 BY REPS
               </button>
@@ -219,23 +231,26 @@ export function ActiveWorkoutPage() {
             <div className="mt-3 flex items-center justify-center gap-4">
               <button
                 onClick={() => setSplitInput((v) => Math.max(1, v - 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-full border text-sm"
-                style={{ borderColor: "#767E6E", color: "#767E6E" }}
+                className="flex h-8 w-8 items-center justify-center rounded-full border"
+                style={{ borderColor: "var(--ink-faint)", color: "var(--ink-faint)" }}
               >
-                –
+                <MinusIcon color="var(--ink-faint)" />
               </button>
-              <span className="min-w-[3rem] text-center font-mono text-2xl font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
+              <span
+                className="min-w-[3rem] text-center text-2xl font-semibold"
+                style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--glow)" }}
+              >
                 {splitInput}
               </span>
               <button
                 onClick={() => setSplitInput((v) => v + 1)}
-                className="flex h-8 w-8 items-center justify-center rounded-full border text-sm"
-                style={{ borderColor: "#E3A73C", color: "#E3A73C" }}
+                className="flex h-8 w-8 items-center justify-center rounded-full border"
+                style={{ borderColor: "var(--glow)", color: "var(--glow)" }}
               >
-                +
+                <PlusIcon color="var(--glow)" />
               </button>
             </div>
-            <p className="mt-1 text-center font-mono text-[11px]" style={{ color: "#767E6E", fontFamily: "var(--font-mono)" }}>
+            <p className="mt-1 text-center text-[11px]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
               {splitMode === "rounds"
                 ? `${splitInput} rounds`
                 : `${splitInput} reps of ${anchor.exercise.name} → ${roundsFromReps(anchor.reps, splitInput)} rounds`}
@@ -249,8 +264,8 @@ export function ActiveWorkoutPage() {
                   setSplitPanelOpen(false);
                 }}
                 disabled={splitMutation.isPending}
-                className="flex-1 rounded py-2 font-mono text-xs font-bold"
-                style={{ background: "#E3A73C", color: "#1E2422" }}
+                className="flex-1 py-2 text-xs font-bold"
+                style={{ background: "var(--glow)", color: "var(--bg)", fontFamily: "var(--font-mono)" }}
               >
                 APPLY
               </button>
@@ -261,8 +276,8 @@ export function ActiveWorkoutPage() {
                     setSplitPanelOpen(false);
                   }}
                   disabled={splitMutation.isPending}
-                  className="rounded px-4 py-2 font-mono text-xs font-semibold"
-                  style={{ background: "#303A29", color: "#A8AF9E" }}
+                  className="px-4 py-2 text-xs font-semibold"
+                  style={{ background: "var(--panel-2)", color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}
                 >
                   CLEAR
                 </button>
@@ -273,11 +288,14 @@ export function ActiveWorkoutPage() {
 
         <div className="mt-2.5 flex flex-col">
           {wod.movements.map((m) => (
-            <div key={m.id} className="flex items-center justify-between border-b py-2" style={{ borderColor: "#303A29" }}>
-              <span className="font-mono text-sm" style={{ color: "#A8AF9E", fontFamily: "var(--font-mono)" }}>
+            <div key={m.id} className="flex items-center justify-between border-b py-2" style={{ borderColor: "var(--border)" }}>
+              <span className="text-sm font-semibold" style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
                 {m.exercise.name.toUpperCase()}
               </span>
-              <span className="font-mono text-lg font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
+              <span
+                className="text-lg font-bold"
+                style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
+              >
                 {m.exercise.unit === "seconds" ? `${repsForMovement(m)}s` : repsForMovement(m)}
               </span>
             </div>
@@ -289,36 +307,69 @@ export function ActiveWorkoutPage() {
         <button
           onClick={handleRoundComplete}
           disabled={logRoundMutation.isPending || isFinished}
-          className="flex w-full flex-col items-center justify-center gap-2 rounded-xl"
-          style={{ height: 168, background: "#E3A73C", color: "#1E2422" }}
+          className="flex w-full flex-col items-center justify-center gap-2"
+          style={{ height: 168, background: "var(--glow)", color: "var(--bg)" }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="#1E2422" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={34} height={34}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={34} height={34}>
             <path d="M12 5v14" />
             <path d="M5 12h14" />
           </svg>
-          <span className="font-mono text-base font-bold tracking-wide" style={{ fontFamily: "var(--font-mono)" }}>
+          <span className="text-base font-bold tracking-[0.14em]" style={{ fontFamily: "var(--font-mono)" }}>
             ROUND COMPLETE
           </span>
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        <div className="font-mono text-[11px] tracking-wide" style={{ color: "#767E6E", fontFamily: "var(--font-mono)" }}>
+        <div className="text-[11px] font-semibold tracking-[0.14em]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
           SPLITS
         </div>
         <div className="mt-2.5 flex flex-col">
           {splits.map((s) => (
             <div
               key={s.round}
-              className="flex justify-between border-b py-2.5 font-mono text-sm"
-              style={{ borderColor: "#303A29", fontFamily: "var(--font-mono)" }}
+              className="flex justify-between border-b py-2.5 text-sm"
+              style={{ borderColor: "var(--border)", fontFamily: "var(--font-mono)" }}
             >
-              <span style={{ color: "#A8AF9E" }}>ROUND {s.round}</span>
-              <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatClock(s.atSeconds)}</span>
+              <span style={{ color: "var(--ink-soft)" }}>ROUND {s.round}</span>
+              <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}>{formatClock(s.atSeconds)}</span>
             </div>
           ))}
         </div>
       </div>
+
+      {cancelConfirmOpen && (
+        <div className="fixed inset-0 z-10 flex items-end justify-center p-5" style={{ background: "rgba(13, 9, 6, 0.7)" }}>
+          <div className="w-full max-w-md p-5" style={{ background: "var(--panel)", border: "1px solid var(--danger)" }}>
+            <p className="text-sm font-bold tracking-[0.06em]" style={{ color: "var(--ink)" }}>
+              Cancel this workout?
+            </p>
+            <p className="mt-1.5 text-xs" style={{ color: "var(--ink-soft)" }}>
+              Your progress won't be saved.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setCancelConfirmOpen(false)}
+                className="flex-1 py-3 text-xs font-bold tracking-[0.1em]"
+                style={{ fontFamily: "var(--font-mono)", background: "var(--panel-2)", color: "var(--ink-soft)" }}
+              >
+                KEEP GOING
+              </button>
+              <button
+                onClick={() => {
+                  setCancelConfirmOpen(false);
+                  cancelMutation.mutate();
+                }}
+                disabled={cancelMutation.isPending}
+                className="flex-1 py-3 text-xs font-bold tracking-[0.1em]"
+                style={{ fontFamily: "var(--font-mono)", background: "var(--danger)", color: "var(--bg)" }}
+              >
+                CANCEL WORKOUT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

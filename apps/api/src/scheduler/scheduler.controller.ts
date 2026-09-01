@@ -27,4 +27,9 @@ export class SchedulerController {
   skipToday() {
     return this.schedulerService.skipToday(todayIsoDate());
   }
+
+  @Get('schedule-rule')
+  getScheduleRule() {
+    return this.schedulerService.getScheduleCap();
+  }
 }

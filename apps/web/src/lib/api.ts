@@ -1,6 +1,7 @@
 import type {
   LogResultRequest,
   RoundSplit,
+  ScheduleCap,
   SetRoundSplitRequest,
   SetSkillLevelRequest,
   SkillLevel,
@@ -52,6 +53,7 @@ export type ApiExercise = {
 export const api = {
   exercises: () => request<ApiExercise[]>("/exercises"),
   today: () => request<TodayResponse>("/today"),
+  scheduleRule: () => request<ScheduleCap>("/schedule-rule"),
   skipToday: () => postJson<TodayResponse>("/today/skip"),
 
   startSession: (assignmentId: string) =>

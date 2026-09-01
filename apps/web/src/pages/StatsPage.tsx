@@ -1,9 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import type { SkillLevel } from "@wod-engine/shared";
 import { api, type ApiExercise } from "../lib/api";
-import { computePRs, computePatternBalance, computeStreaks, formatResult } from "../lib/stats";
+import {
+  computeForTimeTrends,
+  computePRs,
+  computePatternBalance,
+  computePatternVolumeTrend,
+  computeStreaks,
+  computeWeeklyTrainingDays,
+  computeWodTypeDistribution,
+  formatResult,
+} from "../lib/stats";
 import { buildLadders, lineLabel } from "../lib/progressions";
 import { DigitReadout } from "../components/DigitReadout";
+import { PatternVolumeTrendChart } from "../components/PatternVolumeTrendChart";
+import { WodTypeDistribution } from "../components/WodTypeDistribution";
+import { WeeklyTrainingDaysChart } from "../components/WeeklyTrainingDaysChart";
+import { ForTimeTrendCharts } from "../components/ForTimeTrendChart";
 
 const PATTERN_LABELS: Record<string, string> = {
   squat: "Squat",
@@ -15,11 +29,28 @@ const PATTERN_LABELS: Record<string, string> = {
   monostructural: "Monostructural",
 };
 
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <p className="mt-8 text-xs font-semibold tracking-[0.14em] text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+      {children}
+    </p>
+  );
+}
+
+function Panel({ children }: { children: ReactNode }) {
+  return (
+    <div className="mt-3 p-4" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
+      {children}
+    </div>
+  );
+}
+
 export function StatsPage() {
   const { data: logs, isLoading: logsLoading, error } = useQuery({ queryKey: ["logs"], queryFn: api.logs });
   const { data: today } = useQuery({ queryKey: ["today"], queryFn: api.today });
   const { data: skillLevels } = useQuery({ queryKey: ["skillLevels"], queryFn: api.skillLevels });
   const { data: exercises } = useQuery({ queryKey: ["exercises"], queryFn: api.exercises });
+  const { data: scheduleRule } = useQuery({ queryKey: ["scheduleRule"], queryFn: api.scheduleRule });
 
   if (logsLoading) return <p className="p-6 text-[var(--ink-faint)]">Loading stats…</p>;
   if (error) return <p className="p-6 text-[var(--danger)]">Couldn't reach the API — is it running on :3001?</p>;
@@ -48,6 +79,10 @@ export function StatsPage() {
   const prs = computePRs(logs);
   const balance = computePatternBalance(logs);
   const maxBalance = Math.max(...balance.map((b) => b.count));
+  const volumeTrend = computePatternVolumeTrend(logs);
+  const typeDistribution = computeWodTypeDistribution(logs);
+  const weeklyTrainingDays = computeWeeklyTrainingDays(logs.map((l) => l.date));
+  const forTimeTrends = computeForTimeTrends(logs);
 
   return (
     <div className="p-6">
@@ -61,9 +96,7 @@ export function StatsPage() {
         <DigitReadout value={String(logs.length)} label="Logged" />
       </div>
 
-      <p className="mt-8 text-xs font-semibold tracking-[0.14em] text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
-        PERSONAL RECORDS
-      </p>
+      <SectionLabel>PERSONAL RECORDS</SectionLabel>
       <div className="mt-3 divide-y" style={{ background: "var(--panel)", border: "1px solid var(--border)", borderColor: "var(--border)" }}>
         {prs.map((pr) => (
           <div key={pr.wodName} className="flex items-center justify-between px-4 py-3" style={{ borderColor: "var(--border)" }}>
@@ -80,9 +113,12 @@ export function StatsPage() {
         ))}
       </div>
 
-      <p className="mt-8 text-xs font-semibold tracking-[0.14em] text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
-        MOVEMENT PATTERN BALANCE
-      </p>
+      <SectionLabel>FOR TIME TREND</SectionLabel>
+      <Panel>
+        <ForTimeTrendCharts trends={forTimeTrends} />
+      </Panel>
+
+      <SectionLabel>MOVEMENT PATTERN BALANCE</SectionLabel>
       <div className="mt-3 space-y-2 p-4" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
         {balance.map((b) => (
           <div key={b.pattern} className="flex items-center gap-3">
@@ -105,6 +141,21 @@ export function StatsPage() {
         ))}
       </div>
 
+      <SectionLabel>PATTERN VOLUME TREND</SectionLabel>
+      <Panel>
+        <PatternVolumeTrendChart weeks={volumeTrend} />
+      </Panel>
+
+      <SectionLabel>WOD TYPE DISTRIBUTION</SectionLabel>
+      <Panel>
+        <WodTypeDistribution shares={typeDistribution} />
+      </Panel>
+
+      <SectionLabel>WEEKLY TRAINING DAYS</SectionLabel>
+      <Panel>
+        <WeeklyTrainingDaysChart weeks={weeklyTrainingDays} cap={scheduleRule?.maxDaysPerWeek ?? 5} />
+      </Panel>
+
       {progressions}
     </div>
   );
@@ -123,9 +174,7 @@ function ProgressionsPanel({
 
   return (
     <>
-      <p className="mt-8 text-xs font-semibold tracking-[0.14em] text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
-        PROGRESSIONS
-      </p>
+      <SectionLabel>PROGRESSIONS</SectionLabel>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {ladders.map((ladder) => (
           <div key={ladder.line} className="p-4" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
@@ -184,4 +233,3 @@ function RungMark({ status }: { status: "locked" | "current" | "done" }) {
   }
   return <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--ink-faint)" }} />;
 }
-

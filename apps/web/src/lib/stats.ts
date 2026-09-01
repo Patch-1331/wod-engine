@@ -134,6 +134,29 @@ export function computePatternVolumeTrend(logs: WorkoutLogListItem[]): PatternWe
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
 
+export type ForTimeTrendPoint = { date: string; seconds: number };
+export type ForTimeTrend = { wodName: string; points: ForTimeTrendPoint[] };
+
+/**
+ * Chronological time-per-attempt for each named For Time WOD that's been
+ * repeated — the PRs tile only shows the single best result, this shows
+ * whether it's still trending down or has plateaued. WODs logged only once
+ * are excluded since there's no trend to show yet.
+ */
+export function computeForTimeTrends(logs: WorkoutLogListItem[]): ForTimeTrend[] {
+  const byWod = new Map<string, ForTimeTrendPoint[]>();
+  for (const log of logs) {
+    if (log.resultType !== "time_seconds") continue;
+    const points = byWod.get(log.wodName) ?? [];
+    points.push({ date: log.date, seconds: Number(log.resultValue) || 0 });
+    byWod.set(log.wodName, points);
+  }
+  return Array.from(byWod.entries())
+    .map(([wodName, points]) => ({ wodName, points: points.sort((a, b) => a.date.localeCompare(b.date)) }))
+    .filter((t) => t.points.length > 1)
+    .sort((a, b) => a.wodName.localeCompare(b.wodName));
+}
+
 export type WeekTrainingDays = { weekStart: string; days: number };
 
 /** Distinct training days per ISO week, so adherence to the scheduler's day cap is visible over time rather than just as a per-day rule. */

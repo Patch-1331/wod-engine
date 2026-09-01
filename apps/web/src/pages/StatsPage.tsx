@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SkillLevel } from "@wod-engine/shared";
 import { api, type ApiExercise } from "../lib/api";
 import {
+  computeForTimeTrends,
   computePRs,
   computePatternBalance,
   computePatternVolumeTrend,
@@ -14,6 +15,7 @@ import { buildLadders, lineLabel } from "../lib/progressions";
 import { PatternVolumeTrendChart } from "../components/PatternVolumeTrendChart";
 import { WodTypeDistribution } from "../components/WodTypeDistribution";
 import { WeeklyTrainingDaysChart } from "../components/WeeklyTrainingDaysChart";
+import { ForTimeTrendCharts } from "../components/ForTimeTrendChart";
 
 const PATTERN_LABELS: Record<string, string> = {
   squat: "Squat",
@@ -62,6 +64,7 @@ export function StatsPage() {
   const volumeTrend = computePatternVolumeTrend(logs);
   const typeDistribution = computeWodTypeDistribution(logs);
   const weeklyTrainingDays = computeWeeklyTrainingDays(logs.map((l) => l.date));
+  const forTimeTrends = computeForTimeTrends(logs);
 
   return (
     <div className="p-6">
@@ -89,6 +92,13 @@ export function StatsPage() {
             </span>
           </div>
         ))}
+      </div>
+
+      <p className="mt-8 font-mono text-xs tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+        FOR TIME TREND
+      </p>
+      <div className="mt-3">
+        <ForTimeTrendCharts trends={forTimeTrends} />
       </div>
 
       <p className="mt-8 font-mono text-xs tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>

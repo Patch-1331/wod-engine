@@ -10,3 +10,4 @@ apps/api/prisma/dev.db
 apps/api/prisma/dev.db-journal
 coverage/
 .turbo/
+.impeccable/

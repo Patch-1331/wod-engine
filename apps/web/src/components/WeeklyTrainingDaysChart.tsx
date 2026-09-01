@@ -3,6 +3,9 @@ import type { WeekTrainingDays } from "../lib/stats";
 const CHART_HEIGHT = 100;
 const BAR_WIDTH = 22;
 const BAR_GAP = 12;
+// Room for the week-label text either side of the outermost bars — without it,
+// a chart with only 1-2 weeks is narrower than the label text and clips it.
+const SIDE_PAD = 18;
 
 function formatWeekLabel(isoDate: string): string {
   const d = new Date(`${isoDate}T00:00:00Z`);
@@ -13,7 +16,7 @@ export function WeeklyTrainingDaysChart({ weeks, cap }: { weeks: WeekTrainingDay
   if (weeks.length === 0) return null;
 
   const scaleMax = Math.max(cap, ...weeks.map((w) => w.days));
-  const chartWidth = weeks.length * (BAR_WIDTH + BAR_GAP);
+  const chartWidth = weeks.length * (BAR_WIDTH + BAR_GAP) + SIDE_PAD * 2;
   const capY = CHART_HEIGHT - (cap / scaleMax) * CHART_HEIGHT;
 
   return (
@@ -40,7 +43,7 @@ export function WeeklyTrainingDaysChart({ weeks, cap }: { weeks: WeekTrainingDay
             strokeDasharray="4 3"
           />
           {weeks.map((week, i) => {
-            const x = i * (BAR_WIDTH + BAR_GAP);
+            const x = SIDE_PAD + i * (BAR_WIDTH + BAR_GAP);
             const height = (week.days / scaleMax) * CHART_HEIGHT;
             const overCap = week.days > cap;
             return (

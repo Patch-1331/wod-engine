@@ -13,6 +13,9 @@ const SERIES_COLORS: Record<string, string> = {
 const CHART_HEIGHT = 120;
 const BAR_WIDTH = 22;
 const BAR_GAP = 12;
+// Room for the week-label text either side of the outermost bars — without it,
+// a chart with only 1-2 weeks is narrower than the label text and clips it.
+const SIDE_PAD = 18;
 
 function formatWeekLabel(isoDate: string): string {
   const d = new Date(`${isoDate}T00:00:00Z`);
@@ -24,7 +27,7 @@ export function PatternVolumeTrendChart({ weeks }: { weeks: PatternWeekVolume[] 
 
   const patterns = Array.from(new Set(weeks.flatMap((w) => Object.keys(w.counts))));
   const maxTotal = Math.max(...weeks.map((w) => Object.values(w.counts).reduce((sum, c) => sum + c, 0)));
-  const chartWidth = weeks.length * (BAR_WIDTH + BAR_GAP);
+  const chartWidth = weeks.length * (BAR_WIDTH + BAR_GAP) + SIDE_PAD * 2;
 
   return (
     <div>
@@ -45,7 +48,7 @@ export function PatternVolumeTrendChart({ weeks }: { weeks: PatternWeekVolume[] 
           viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT + 24}`}
         >
           {weeks.map((week, i) => {
-            const x = i * (BAR_WIDTH + BAR_GAP);
+            const x = SIDE_PAD + i * (BAR_WIDTH + BAR_GAP);
             let yOffset = CHART_HEIGHT;
             return (
               <g key={week.weekStart}>

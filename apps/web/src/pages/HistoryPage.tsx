@@ -16,11 +16,11 @@ export function HistoryPage() {
   const { data, isLoading, error } = useQuery({ queryKey: ["logs"], queryFn: api.logs });
 
   if (isLoading) return <p className="p-6 text-[var(--ink-faint)]">Loading history…</p>;
-  if (error) return <p className="p-6 text-red-700">Couldn't reach the API — is it running on :3001?</p>;
+  if (error) return <p className="p-6 text-[var(--danger)]">Couldn't reach the API — is it running on :3001?</p>;
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-extrabold uppercase" style={{ fontFamily: "var(--font-display)" }}>
+      <h1 className="text-3xl font-extrabold uppercase" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>
         History
       </h1>
 
@@ -29,18 +29,19 @@ export function HistoryPage() {
           Logged workouts will show up here once you finish and save your first WOD.
         </p>
       ) : (
-        <div className="mt-5 divide-y divide-[var(--border)] rounded-md border border-[var(--border)] bg-[var(--surface)]">
+        <div className="mt-5 divide-y" style={{ background: "var(--panel)", border: "1px solid var(--border)", borderColor: "var(--border)" }}>
           {data.map((log) => (
             <button
               key={log.id}
               onClick={() => navigate(`/log/${log.assignmentId}`)}
               className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              style={{ borderColor: "var(--border)" }}
             >
               <div className="min-w-0">
-                <p className="font-mono text-[11px] tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
                   {formatDate(log.date)}
                 </p>
-                <p className="truncate font-semibold uppercase" style={{ fontFamily: "var(--font-display)" }}>
+                <p className="truncate font-semibold uppercase" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>
                   {log.wodName}
                 </p>
                 {log.notes && <p className="mt-0.5 truncate text-sm text-[var(--ink-soft)]">{log.notes}</p>}
@@ -48,13 +49,16 @@ export function HistoryPage() {
               <div className="flex shrink-0 items-center gap-3">
                 {log.rpe !== null && (
                   <span
-                    className="rounded px-2 py-1 font-mono text-xs font-semibold"
-                    style={{ background: "var(--accent-tint)", color: "var(--accent-strong)", fontFamily: "var(--font-mono)" }}
+                    className="px-2 py-1 text-xs font-semibold"
+                    style={{ background: "var(--glow-tint)", color: "var(--glow)", fontFamily: "var(--font-mono)" }}
                   >
                     RPE {log.rpe}
                   </span>
                 )}
-                <span className="font-mono text-lg font-semibold" style={{ fontFamily: "var(--font-mono)" }}>
+                <span
+                  className="text-lg font-bold"
+                  style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--glow)", textShadow: "0 0 8px var(--glow-tint)" }}
+                >
                   {formatResult(log.resultType, log.resultValue)}
                 </span>
               </div>

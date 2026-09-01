@@ -9,7 +9,7 @@ import { LogResultPage } from "./pages/LogResultPage";
 function TabbedLayout() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-[var(--bg)]">
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex flex-1 flex-col overflow-y-auto">
         <Outlet />
       </div>
       <TabBar />

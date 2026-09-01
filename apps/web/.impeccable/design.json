@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-01T00:00:00Z",
+  "title": "Design System: WOD Engine",
+  "extensions": {
+    "colorMeta": {
+      "ground": { "role": "neutral", "displayName": "Ground", "canonical": "#0d0906", "tonalRamp": ["#342418", "#5c402b", "#845b3d", "#ac774f", "#c09676", "#d2b49e", "#e5d3c6", "#f7f2ee"] },
+      "panel": { "role": "neutral", "displayName": "Panel", "canonical": "#1c140d", "tonalRamp": ["#342518", "#5c422b", "#845e3d", "#ac7b50", "#bf9876", "#d2b69e", "#e4d4c6", "#f7f2ee"] },
+      "panel-recessed": { "role": "neutral", "displayName": "Panel Recessed", "canonical": "#140f0a" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#f2ece2" },
+      "ink-soft": { "role": "neutral", "displayName": "Ink Soft", "canonical": "#b8ab97" },
+      "ink-faint": { "role": "neutral", "displayName": "Ink Faint", "canonical": "#9c8f7a" },
+      "border": { "role": "neutral", "displayName": "Border", "canonical": "#3a2c1c" },
+      "glow": { "role": "primary", "displayName": "Nixie Glow", "canonical": "#ff9130", "tonalRamp": ["#4c2400", "#873f00", "#c15a00", "#fb7600", "#ff9537", "#ffb471", "#ffd2ab", "#fff1e5"] },
+      "glow-dim": { "role": "primary", "displayName": "Nixie Glow (unlit)", "canonical": "#7a4416" },
+      "danger": { "role": "danger", "displayName": "Danger", "canonical": "#d1503f", "tonalRamp": ["#3e140f", "#6d241a", "#9c3325", "#cb4331", "#d86c5d", "#e4978c", "#efc1bb", "#faecea"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Rajdhani)", "purpose": "WOD nameplates and screen titles only." },
+      "digit": { "displayName": "Digit (JetBrains Mono)", "purpose": "Every live or fixed numeric readout; always tabular-nums." },
+      "label": { "displayName": "Label (JetBrains Mono)", "purpose": "Captions, section headers, tab labels, badges — uppercase, wide-tracked." },
+      "body": { "displayName": "Body (system sans)", "purpose": "Prose only: empty states, helper text, notes." }
+    },
+    "shadows": [
+      { "name": "glow-lg", "value": "0 0 16px rgba(255,145,48,0.12), 0 0 3px #ff9130", "purpose": "Large live readouts (running clock, current round)." },
+      { "name": "glow-sm", "value": "0 0 12px rgba(255,145,48,0.12), 0 0 2px #ff9130", "purpose": "Smaller live readouts (digit banks, PRs, stepper values)." },
+      { "name": "glow-control", "value": "0 0 6px #ff9130", "purpose": "The lit indicator dot on an energized toggle." }
+    ],
+    "motion": [],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Digit Readout",
+      "kind": "custom",
+      "refersTo": "panel-recessed",
+      "description": "The system's signature primitive — a glowing tabular value over a tracked label, on a recessed panel field.",
+      "html": "<div class=\"ds-digit-readout\"><span class=\"ds-digit-readout__value\">10</span><span class=\"ds-digit-readout__label\">Time cap (min)</span></div>",
+      "css": ".ds-digit-readout { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 12px; background: #140f0a; border: 1px solid #3a2c1c; } .ds-digit-readout__value { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 2.25rem; line-height: 1; color: #ff9130; text-shadow: 0 0 12px rgba(255,145,48,0.12), 0 0 2px #ff9130; } .ds-digit-readout__label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #9c8f7a; }"
+    },
+    {
+      "name": "Primary Button (energized toggle)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The START/RESUME control. Un-energized: solid glow fill. Energized: glow-tinted outline with a lit indicator dot.",
+      "html": "<button class=\"ds-btn-toggle\"><span class=\"ds-btn-toggle__dot\"></span>START WORKOUT</button>",
+      "css": ".ds-btn-toggle { display: flex; width: 100%; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.14em; background: #ff9130; color: #0d0906; border: none; } .ds-btn-toggle__dot { display: inline-block; width: 10px; height: 10px; border-radius: 9999px; background: #0d0906; } .ds-btn-toggle:hover { filter: brightness(1.08); } .ds-btn-toggle:focus-visible { outline: 2px solid #ff9130; outline-offset: 2px; } .ds-btn-toggle--energized { background: rgba(255,145,48,0.12); color: #ff9130; border: 1px solid #ff9130; } .ds-btn-toggle--energized .ds-btn-toggle__dot { background: #ff9130; box-shadow: 0 0 6px #ff9130; }"
+    },
+    {
+      "name": "Stepper",
+      "kind": "input",
+      "refersTo": "panel-recessed",
+      "description": "Increment/decrement control for numeric input (rounds, reps, RPE). Circular icon buttons flank a glowing tabular value — the only circles in the system besides the toggle dot.",
+      "html": "<div class=\"ds-stepper\"><button class=\"ds-stepper__btn ds-stepper__btn--minus\" aria-label=\"Decrease\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" width=\"14\" height=\"14\"><path d=\"M5 12h14\"/></svg></button><span class=\"ds-stepper__value\">5</span><button class=\"ds-stepper__btn ds-stepper__btn--plus\" aria-label=\"Increase\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" width=\"14\" height=\"14\"><path d=\"M12 5v14\"/><path d=\"M5 12h14\"/></svg></button></div>",
+      "css": ".ds-stepper { display: flex; align-items: center; justify-content: center; gap: 16px; } .ds-stepper__btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9999px; border: 1px solid; background: transparent; } .ds-stepper__btn--minus { border-color: #9c8f7a; color: #9c8f7a; } .ds-stepper__btn--plus { border-color: #ff9130; color: #ff9130; } .ds-stepper__value { min-width: 3rem; text-align: center; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 1.5rem; color: #ff9130; }"
+    },
+    {
+      "name": "Panel List",
+      "kind": "card",
+      "refersTo": "panel-recessed",
+      "description": "The movement/history/PR list container — engraved plate, flat, hairline-divided rows, never individually boxed.",
+      "html": "<div class=\"ds-panel-list\"><p class=\"ds-panel-list__label\">Movements</p><div class=\"ds-panel-list__row\"><span class=\"ds-panel-list__name\">Knee Push-Up</span><span class=\"ds-panel-list__value\">45</span></div><div class=\"ds-panel-list__row\"><span class=\"ds-panel-list__name\">Jump Squat</span><span class=\"ds-panel-list__value\">45</span></div></div>",
+      "css": ".ds-panel-list { background: #1c140d; border: 1px solid #3a2c1c; } .ds-panel-list__label { padding: 12px 16px 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #9c8f7a; } .ds-panel-list__row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #3a2c1c; } .ds-panel-list__name { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 600; letter-spacing: 0.02em; color: #b8ab97; } .ds-panel-list__value { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 1.125rem; color: #f2ece2; }"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "panel-recessed",
+      "description": "Bottom navigation — flat mono labels, glow marks the active tab, no icons or pill indicator.",
+      "html": "<nav class=\"ds-tabbar\"><a class=\"ds-tabbar__item ds-tabbar__item--active\" href=\"#\">Today</a><a class=\"ds-tabbar__item\" href=\"#\">History</a><a class=\"ds-tabbar__item\" href=\"#\">Stats</a></nav>",
+      "css": ".ds-tabbar { display: flex; border-top: 1px solid #3a2c1c; background: #1c140d; } .ds-tabbar__item { flex: 1; padding: 12px 0; text-align: center; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #9c8f7a; text-decoration: none; } .ds-tabbar__item--active { color: #ff9130; text-shadow: 0 0 8px rgba(255,145,48,0.12); } .ds-tabbar__item:focus-visible { outline: 2px solid #ff9130; outline-offset: 2px; }"
+    },
+    {
+      "name": "Confirmation Sheet",
+      "kind": "custom",
+      "refersTo": "button-danger",
+      "description": "In-world replacement for a native browser confirm() dialog — a fixed bottom sheet over a dimmed backdrop, used for destructive confirmations on the live-tracker screen.",
+      "html": "<div class=\"ds-confirm-backdrop\"><div class=\"ds-confirm-sheet\"><p class=\"ds-confirm-sheet__title\">Cancel this workout?</p><p class=\"ds-confirm-sheet__body\">Your progress won't be saved.</p><div class=\"ds-confirm-sheet__actions\"><button class=\"ds-confirm-sheet__keep\">Keep Going</button><button class=\"ds-confirm-sheet__confirm\">Cancel Workout</button></div></div></div>",
+      "css": ".ds-confirm-backdrop { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 20px; background: rgba(13,9,6,0.7); } .ds-confirm-sheet { width: 100%; max-width: 28rem; padding: 20px; background: #1c140d; border: 1px solid #d1503f; } .ds-confirm-sheet__title { font-size: 14px; font-weight: 700; color: #f2ece2; } .ds-confirm-sheet__body { margin-top: 6px; font-size: 12px; color: #b8ab97; } .ds-confirm-sheet__actions { display: flex; gap: 8px; margin-top: 16px; } .ds-confirm-sheet__keep, .ds-confirm-sheet__confirm { flex: 1; padding: 12px 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; border: none; } .ds-confirm-sheet__keep { background: #140f0a; color: #b8ab97; } .ds-confirm-sheet__confirm { background: #d1503f; color: #0d0906; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Nixie Laboratory Counter",
+    "overview": "WOD Engine reads out your day's assignment the way a lab instrument reports a measurement, not the way a fitness app pitches a plan. The system is built from one physical object: a bank of glass nixie tubes on a blackened steel instrument panel, each tube a glowing digit reporting a real quantity — a time cap, a round count, a streak, a personal record. Nothing decorates; everything either measures or holds still.\n\nThe world runs on a strict two-layer distinction. Library data — the WOD's name, its movements, its prescribed reps — is engraved: fixed, flat, rendered in warm neutral ink on a recessed plate that never lights up. Live session state — the running clock, the current round, a personal record just set — is the only thing allowed to glow. A visitor should always be able to tell, at a glance and without reading labels, which numbers on screen are the plan and which ones are happening right now.\n\nThis is a redesign, not an extension: it replaces an earlier warm editorial system (olive ground, amber/teal accents, a condensed display serif) rather than refining it. The old system is anti-reference, not a starting point.",
+    "keyCharacteristics": [
+      "Near-black steel-and-glass ground with exactly one glow hue — a Restrained color strategy, not a palette",
+      "Fixed content is engraved (flat, neutral, never lit); live content glows",
+      "Flat rectangular panels throughout; the only circles are physical point-controls (steppers, the toggle dot)",
+      "State is marked by shape and pattern first, color second",
+      "Depth comes from emitted light (a centered glow), never from a directional drop shadow"
+    ],
+    "rules": [
+      { "name": "The One Glow Rule", "body": "Only glow (#ff9130) marks something live, active, or record-setting. If a value is fixed, historical, or inert, it renders in an ink tone — never in glow, however visually similar the two contexts feel.", "section": "colors" },
+      { "name": "The Engraved-vs-Lit Rule", "body": "Every screen keeps two visually distinct layers: engraved (flat, ink-toned — the plan) and lit (glowing — what's happening now). A future screen may not blur the two by giving a fixed value a glow, or a live value flat ink.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "Any number that can change while the user watches must render with font-variant-numeric: tabular-nums in JetBrains Mono, so digits never shift the layout as they tick.", "section": "typography" },
+      { "name": "The Emission Rule", "body": "Depth comes from light a surface emits, never from a directional shadow implying an external light source. If an element needs to feel raised, give it glow, not shadow.", "section": "elevation" },
+      { "name": "The Status-by-Shape Rule", "body": "Any tri-state or multi-state indicator must be distinguishable by mark shape/fill before color is even considered — the system should still read correctly in grayscale.", "section": "components" }
+    ],
+    "dos": [
+      "Do keep the glow (#ff9130) to values that are live, active, or record-setting — never decorative.",
+      "Do render every changeable number in tabular JetBrains Mono so digit banks don't jitter.",
+      "Do anchor a screen's primary action to the true bottom of its panel (margin-top: auto), not wherever the content happens to end.",
+      "Do use zero-offset glow for anything that needs to feel raised — never a directional drop shadow.",
+      "Do self-host Rajdhani and JetBrains Mono from /fonts rather than a Google Fonts CDN @import."
+    ],
+    "donts": [
+      "Don't introduce a second saturated accent color — the One Glow Rule is the point, not a starting palette.",
+      "Don't round the corners of a panel, card, button, or container — flat rectangles are the chassis language; reserve circles for physical point-controls only.",
+      "Don't use a Unicode glyph (◆, ●, –, +) as a stand-in icon — author an SVG in the existing stroke language (2.2px stroke, round caps) instead.",
+      "Don't use a native browser dialog (window.confirm, alert) for any in-product confirmation — build it in-world as a panel/sheet.",
+      "Don't give a fixed/engraved value a glow, or a live value flat ink — the two-layer distinction is the system's core legibility device."
+    ]
+  }
+}

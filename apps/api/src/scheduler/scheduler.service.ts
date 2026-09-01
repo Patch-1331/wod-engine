@@ -111,6 +111,12 @@ export class SchedulerService {
     };
   }
 
+  /** The scheduler's day-per-week cap, for callers outside the scheduling flow (e.g. the Stats page). */
+  async getScheduleCap(): Promise<{ maxDaysPerWeek: number }> {
+    const rule = await this.prisma.scheduleRule.findFirst();
+    return { maxDaysPerWeek: rule?.maxDaysPerWeek ?? 5 };
+  }
+
   /** Marks today as a rest day — upserts so this works whether or not a WOD was already generated. */
   async skipToday(today: string) {
     await this.prisma.dailyAssignment.upsert({

@@ -91,3 +91,61 @@ export function computePatternBalance(logs: WorkoutLogListItem[]): Array<{ patte
     .map(([pattern, count]) => ({ pattern, count }))
     .sort((a, b) => b.count - a.count);
 }
+
+export type WodTypeShare = { wodType: WorkoutLogListItem["wodType"]; count: number; percent: number };
+
+/** Share of logged workouts per WOD type (amrap/for_time/emom/tabata) — surfaces the scheduler's format-alternation rule as an outcome. */
+export function computeWodTypeDistribution(logs: WorkoutLogListItem[]): WodTypeShare[] {
+  const counts = new Map<WorkoutLogListItem["wodType"], number>();
+  for (const log of logs) {
+    counts.set(log.wodType, (counts.get(log.wodType) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([wodType, count]) => ({ wodType, count, percent: (count / logs.length) * 100 }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/** Monday of the ISO week containing the given date, as an ISO date string. */
+export function isoWeekStart(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  const day = d.getUTCDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + mondayOffset);
+  return d.toISOString().slice(0, 10);
+}
+
+export type PatternWeekVolume = { weekStart: string; counts: Record<string, number> };
+
+/**
+ * Same per-pattern counting as computePatternBalance, but bucketed by ISO week
+ * instead of collapsed into a lifetime total — surfaces whether pattern balance
+ * holds up week to week rather than just in aggregate.
+ */
+export function computePatternVolumeTrend(logs: WorkoutLogListItem[]): PatternWeekVolume[] {
+  const byWeek = new Map<string, Record<string, number>>();
+  for (const log of logs) {
+    const weekStart = isoWeekStart(log.date);
+    const counts = byWeek.get(weekStart) ?? {};
+    counts[log.dominantPattern] = (counts[log.dominantPattern] ?? 0) + 1;
+    byWeek.set(weekStart, counts);
+  }
+  return Array.from(byWeek.entries())
+    .map(([weekStart, counts]) => ({ weekStart, counts }))
+    .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+}
+
+export type WeekTrainingDays = { weekStart: string; days: number };
+
+/** Distinct training days per ISO week, so adherence to the scheduler's day cap is visible over time rather than just as a per-day rule. */
+export function computeWeeklyTrainingDays(dates: string[]): WeekTrainingDays[] {
+  const byWeek = new Map<string, Set<string>>();
+  for (const date of dates) {
+    const weekStart = isoWeekStart(date);
+    const set = byWeek.get(weekStart) ?? new Set<string>();
+    set.add(date);
+    byWeek.set(weekStart, set);
+  }
+  return Array.from(byWeek.entries())
+    .map(([weekStart, set]) => ({ weekStart, days: set.size }))
+    .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+}

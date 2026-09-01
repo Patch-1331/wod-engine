@@ -1,8 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SkillLevel } from "@wod-engine/shared";
 import { api, type ApiExercise } from "../lib/api";
-import { computePRs, computePatternBalance, computeStreaks, formatResult } from "../lib/stats";
+import {
+  computePRs,
+  computePatternBalance,
+  computePatternVolumeTrend,
+  computeStreaks,
+  computeWeeklyTrainingDays,
+  computeWodTypeDistribution,
+  formatResult,
+} from "../lib/stats";
 import { buildLadders, lineLabel } from "../lib/progressions";
+import { PatternVolumeTrendChart } from "../components/PatternVolumeTrendChart";
+import { WodTypeDistribution } from "../components/WodTypeDistribution";
+import { WeeklyTrainingDaysChart } from "../components/WeeklyTrainingDaysChart";
 
 const PATTERN_LABELS: Record<string, string> = {
   squat: "Squat",
@@ -19,6 +30,7 @@ export function StatsPage() {
   const { data: today } = useQuery({ queryKey: ["today"], queryFn: api.today });
   const { data: skillLevels } = useQuery({ queryKey: ["skillLevels"], queryFn: api.skillLevels });
   const { data: exercises } = useQuery({ queryKey: ["exercises"], queryFn: api.exercises });
+  const { data: scheduleRule } = useQuery({ queryKey: ["scheduleRule"], queryFn: api.scheduleRule });
 
   if (logsLoading) return <p className="p-6 text-[var(--ink-faint)]">Loading stats…</p>;
   if (error) return <p className="p-6 text-red-700">Couldn't reach the API — is it running on :3001?</p>;
@@ -47,6 +59,9 @@ export function StatsPage() {
   const prs = computePRs(logs);
   const balance = computePatternBalance(logs);
   const maxBalance = Math.max(...balance.map((b) => b.count));
+  const volumeTrend = computePatternVolumeTrend(logs);
+  const typeDistribution = computeWodTypeDistribution(logs);
+  const weeklyTrainingDays = computeWeeklyTrainingDays(logs.map((l) => l.date));
 
   return (
     <div className="p-6">
@@ -96,6 +111,27 @@ export function StatsPage() {
             </span>
           </div>
         ))}
+      </div>
+
+      <p className="mt-8 font-mono text-xs tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+        PATTERN VOLUME TREND
+      </p>
+      <div className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
+        <PatternVolumeTrendChart weeks={volumeTrend} />
+      </div>
+
+      <p className="mt-8 font-mono text-xs tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+        WOD TYPE DISTRIBUTION
+      </p>
+      <div className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
+        <WodTypeDistribution shares={typeDistribution} />
+      </div>
+
+      <p className="mt-8 font-mono text-xs tracking-wide text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
+        WEEKLY TRAINING DAYS
+      </p>
+      <div className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
+        <WeeklyTrainingDaysChart weeks={weeklyTrainingDays} cap={scheduleRule?.maxDaysPerWeek ?? 5} />
       </div>
 
       {progressions}

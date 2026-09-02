@@ -13,8 +13,9 @@ pre-filled from the tracked session; history and PRs. Runs entirely on
 localhost, SQLite as the database.
 
 **Out (for now):** accounts/auth, hosted deployment, weighted/equipment-
-heavy movements, iOS/Android apps, a program-editor UI, and EMOM/Tabata's
-auto-advancing interval timer.
+heavy movements, and iOS/Android apps. See the GitHub Project (linked
+below) for what's since moved from "out" to active work, like the
+program-editor UI and EMOM/Tabata's auto-advancing interval timer.
 
 ## Program design
 
@@ -58,10 +59,11 @@ wod-engine/
 
 ## Roadmap
 
-1. **MVP — local web** (this scaffold + the generator/scheduler logic on top of it)
-2. **Polish** — exercise scaling/progressions, stats dashboard, program-editor UI, expanded equipment (jump rope, box/step), EMOM/Tabata interval timer
-3. **Hosted deploy** — real auth, Postgres, deployed API + web
-4. **Mobile** — React Native (Expo) on `packages/shared` and the existing API
+Tracked as features/stories on the
+[WOD Engine GitHub Project](https://github.com/users/Patch-1331/projects/1) —
+that board is the source of truth for what's shipped, in progress, and
+planned. This doc stays high-level (stack, domain model, architecture)
+and doesn't try to mirror it.
 
 ## Design references
 

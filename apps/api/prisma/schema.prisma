@@ -28,6 +28,12 @@ model Exercise {
   line String?
   rung Int? // position within that line's chain, 0-indexed
 
+  // Warm-up/cool-down tagging (Feature #63) — independent of `pattern`/`line`
+  // so an exercise still carries its `pattern` for WOD matching while also
+  // being usable as warm-up/cool-down content. Null for exercises not part
+  // of either checklist.
+  phase String? // warmup | cooldown | null
+
   altExerciseId String?
   altExercise   Exercise?  @relation("ExerciseAlt", fields: [altExerciseId], references: [id])
   substitutes   Exercise[] @relation("ExerciseAlt")
@@ -39,10 +45,10 @@ model Exercise {
 // User). Read by the scheduler when generating a WOD and advanced/dropped
 // by the 3x8-to-3x5 rule after a result is logged (Feature #2).
 model SkillLevel {
-  id        String   @id @default(cuid())
-  line      String   @unique // push_horizontal | push_vertical | pull | squat | hinge | core_dynamic | core_hold | core_side
-  rung      Int      @default(0)
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  line       String   @unique // push_horizontal | push_vertical | pull | squat | hinge | core_dynamic | core_hold | core_side
+  rung       Int      @default(0)
+  updatedAt  DateTime @updatedAt
   // Set by the automatic advancement rule (#7) so the Stats "level up"
   // banner (#10) can tell a fresh advance from a drop or a manual override.
   // Null until the first automatic change; a manual override (#8) clears
@@ -64,9 +70,9 @@ model Wod {
 }
 
 model WodMovement {
-  id         String @id @default(cuid())
+  id         String   @id @default(cuid())
   wodId      String
-  wod        Wod    @relation(fields: [wodId], references: [id], onDelete: Cascade)
+  wod        Wod      @relation(fields: [wodId], references: [id], onDelete: Cascade)
   exerciseId String
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
   reps       Int
@@ -75,9 +81,10 @@ model WodMovement {
 
 // One active row read by the scheduler.
 model ScheduleRule {
-  id                  String @id @default(cuid())
-  maxDaysPerWeek      Int    @default(5)
-  patternCooldownDays Int    @default(5)
+  id                    String  @id @default(cuid())
+  maxDaysPerWeek        Int     @default(5)
+  patternCooldownDays   Int     @default(5)
+  warmupCooldownEnabled Boolean @default(false) // Feature #63 opt-in
 }
 
 model DailyAssignment {
@@ -97,24 +104,28 @@ model DailyAssignment {
 // written on every "round complete" tap so a locked phone or a refresh
 // never loses progress.
 model WorkoutSession {
-  id           String   @id @default(cuid())
-  assignmentId String   @unique
-  assignment   DailyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  startedAt    DateTime @default(now())
-  capSeconds   Int
-  roundSplits  String   @default("[]") // JSON-encoded RoundSplit[]
-  status       String   @default("in_progress") // in_progress | completed | abandoned
+  id                String          @id @default(cuid())
+  assignmentId      String          @unique
+  assignment        DailyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  startedAt         DateTime        @default(now())
+  capSeconds        Int
+  roundSplits       String          @default("[]") // JSON-encoded RoundSplit[]
+  status            String          @default("in_progress") // in_progress | completed | abandoned
   finishedAtSeconds Int? // elapsed time when "Finish" was tapped — the natural score for a For Time WOD
   roundSplitCount   Int? // optional user-chosen round count to break high-rep movements into; null = unsplit
+
+  // Feature #63 — stamped when each checklist is finished; read later for stats.
+  warmupCompletedAt   DateTime?
+  cooldownCompletedAt DateTime?
 }
 
 model WorkoutLog {
-  id           String  @id @default(cuid())
-  assignmentId String  @unique
+  id           String          @id @default(cuid())
+  assignmentId String          @unique
   assignment   DailyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   resultType   String // time_seconds | rounds_reps | total_reps
   resultValue  String // e.g. "1122" (seconds), "17+3" (rounds+reps), "220" (total reps)
   rpe          Int?
   notes        String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime        @default(now())
 }

@@ -16,7 +16,9 @@ model User {
 model Exercise {
   id       String  @id @default(cuid())
   name     String  @unique
-  pattern  String // push | pull | squat | hinge | core | cardio
+  // Null only for general warm-up/cool-down filler not tied to a pattern
+  // (Feature #63, e.g. light jogging, deep breathing).
+  pattern  String? // push | pull | squat | hinge | core | cardio | null
   needsBar Boolean @default(false)
   scalable Boolean @default(false)
   unit     String  @default("reps") // reps | seconds — seconds for timed holds (e.g. plank family)

@@ -31,6 +31,10 @@ export type ProgressionLine = z.infer<typeof progressionLine>;
 export const exerciseUnit = z.enum(["reps", "seconds"]);
 export type ExerciseUnit = z.infer<typeof exerciseUnit>;
 
+/** Tags an Exercise as warm-up/cool-down checklist content (Feature #63). Null for regular pool exercises. */
+export const exercisePhase = z.enum(["warmup", "cooldown"]);
+export type ExercisePhase = z.infer<typeof exercisePhase>;
+
 export const wodType = z.enum(["amrap", "for_time", "emom", "tabata"]);
 export type WodType = z.infer<typeof wodType>;
 

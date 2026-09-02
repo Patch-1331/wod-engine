@@ -39,7 +39,10 @@ function computeRoundReps(total: number, rounds: number): number[] {
   if (rounds <= 1) return [total];
   const base = Math.floor(total / rounds);
   const remainder = total % rounds;
-  return Array.from({ length: rounds }, (_, i) => base + (i < remainder ? 1 : 0));
+  return Array.from(
+    { length: rounds },
+    (_, i) => base + (i < remainder ? 1 : 0),
+  );
 }
 
 /** Total reps actually performed for one movement, given how many round-taps were logged. */
@@ -81,7 +84,9 @@ export function computeRungChanges(
 
     const totalReps = totalRepsForMovement(m, completedRounds, roundSplitCount);
     const isSeconds = m.exercise.unit === 'seconds';
-    const advanceThreshold = isSeconds ? ADVANCE_THRESHOLD_SECONDS : ADVANCE_THRESHOLD;
+    const advanceThreshold = isSeconds
+      ? ADVANCE_THRESHOLD_SECONDS
+      : ADVANCE_THRESHOLD;
     const holdFloor = isSeconds ? HOLD_FLOOR_SECONDS : HOLD_FLOOR;
 
     let to = from;

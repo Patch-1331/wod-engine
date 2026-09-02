@@ -85,7 +85,10 @@ export class LogsService {
     const maxRungByLine = new Map<string, number>();
     for (const e of linedExercises) {
       if (!e.line || e.rung === null) continue;
-      maxRungByLine.set(e.line, Math.max(maxRungByLine.get(e.line) ?? 0, e.rung));
+      maxRungByLine.set(
+        e.line,
+        Math.max(maxRungByLine.get(e.line) ?? 0, e.rung),
+      );
     }
 
     const changes = computeRungChanges(
@@ -100,7 +103,10 @@ export class LogsService {
       changes.map((c) =>
         this.prisma.skillLevel.update({
           where: { line: c.line },
-          data: { rung: c.to, lastChange: c.to > c.from ? 'advanced' : 'dropped' },
+          data: {
+            rung: c.to,
+            lastChange: c.to > c.from ? 'advanced' : 'dropped',
+          },
         }),
       ),
     );

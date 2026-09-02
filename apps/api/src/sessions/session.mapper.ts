@@ -15,5 +15,7 @@ export function toSessionDto(session: PrismaWorkoutSession): WorkoutSession {
     status: session.status as WorkoutSession['status'],
     finishedAtSeconds: session.finishedAtSeconds,
     roundSplitCount: session.roundSplitCount,
+    warmupCompletedAt: session.warmupCompletedAt?.toISOString() ?? null,
+    cooldownCompletedAt: session.cooldownCompletedAt?.toISOString() ?? null,
   };
 }

@@ -6,6 +6,7 @@ import { StatsPage } from "./pages/StatsPage";
 import { ActiveWorkoutPage } from "./pages/ActiveWorkoutPage";
 import { LogResultPage } from "./pages/LogResultPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { WarmupPage } from "./pages/WarmupPage";
 
 function TabbedLayout() {
   return (
@@ -36,6 +37,7 @@ function App() {
         }
       />
       <Route path="/log/:assignmentId" element={<LogResultPage />} />
+      <Route path="/warmup/:assignmentId" element={<WarmupPage />} />
     </Routes>
   );
 }

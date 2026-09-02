@@ -39,6 +39,11 @@ export class SessionsController {
     return this.sessionsService.finish(assignmentId);
   }
 
+  @Post('warmup-complete')
+  completeWarmup(@Param('assignmentId') assignmentId: string) {
+    return this.sessionsService.completeWarmup(assignmentId);
+  }
+
   @Delete()
   @HttpCode(204)
   cancel(@Param('assignmentId') assignmentId: string) {

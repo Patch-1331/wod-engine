@@ -66,6 +66,8 @@ export const api = {
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/rounds`, round),
   finishSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/finish`),
+  completeWarmup: (assignmentId: string) =>
+    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/warmup-complete`),
   cancelSession: (assignmentId: string) =>
     request<void>(`/assignments/${assignmentId}/session`, { method: "DELETE" }),
   setRoundSplit: (assignmentId: string, body: SetRoundSplitRequest) =>

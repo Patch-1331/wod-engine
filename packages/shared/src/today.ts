@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checklistExerciseSchema } from "./checklist";
 import { assignmentStatus } from "./enums";
 import { wodSchema } from "./wod";
 import { workoutSessionSchema } from "./session";
@@ -22,5 +23,11 @@ export const todayResponseSchema = z.object({
   date: z.string(),
   isRestDay: z.boolean(),
   assignment: todayAssignmentSchema.nullable(),
+  // Feature #63 — lets the web app decide whether to show the checklist
+  // screens at all. Lists are null whenever the setting is off or there's
+  // no assignment to build a checklist for (rest day).
+  warmupCooldownEnabled: z.boolean(),
+  warmup: z.array(checklistExerciseSchema).nullable(),
+  cooldown: z.array(checklistExerciseSchema).nullable(),
 });
 export type TodayResponse = z.infer<typeof todayResponseSchema>;

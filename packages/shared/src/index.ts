@@ -1,3 +1,4 @@
+export * from "./checklist";
 export * from "./enums";
 export * from "./exercise";
 export * from "./wod";

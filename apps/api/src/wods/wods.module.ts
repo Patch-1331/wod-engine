@@ -5,5 +5,6 @@ import { WodsService } from './wods.service';
 @Module({
   controllers: [WodsController],
   providers: [WodsService],
+  exports: [WodsService],
 })
 export class WodsModule {}

@@ -4,8 +4,10 @@ import type {
   ScheduleCap,
   SetRoundSplitRequest,
   SetSkillLevelRequest,
+  Settings,
   SkillLevel,
   TodayResponse,
+  UpdateSettings,
   WorkoutLog,
   WorkoutLogListItem,
   WorkoutSession,
@@ -77,4 +79,7 @@ export const api = {
   skillLevels: () => request<SkillLevel[]>("/skill-levels"),
   setSkillLevel: (line: string, body: SetSkillLevelRequest) =>
     patchJson<SkillLevel>(`/skill-levels/${line}`, body),
+
+  settings: () => request<Settings>("/settings"),
+  updateSettings: (body: UpdateSettings) => patchJson<Settings>("/settings", body),
 };

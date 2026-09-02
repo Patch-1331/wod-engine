@@ -5,6 +5,7 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { StatsPage } from "./pages/StatsPage";
 import { ActiveWorkoutPage } from "./pages/ActiveWorkoutPage";
 import { LogResultPage } from "./pages/LogResultPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 function TabbedLayout() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/" element={<TodayPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/stats" element={<StatsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route
         path="/workout/:assignmentId"

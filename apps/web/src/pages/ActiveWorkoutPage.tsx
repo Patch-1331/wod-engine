@@ -71,12 +71,14 @@ export function ActiveWorkoutPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today"] }),
   });
 
+  const hasCooldown = today?.warmupCooldownEnabled && (today?.cooldown?.length ?? 0) > 0;
+
   const finishMutation = useMutation({
     mutationFn: () => api.finishSession(assignmentId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["today"] });
       finishCue();
-      navigate(`/log/${assignmentId}`);
+      navigate(hasCooldown ? `/cooldown/${assignmentId}` : `/log/${assignmentId}`);
     },
   });
 

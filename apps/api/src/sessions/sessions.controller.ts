@@ -44,6 +44,11 @@ export class SessionsController {
     return this.sessionsService.completeWarmup(assignmentId);
   }
 
+  @Post('cooldown-complete')
+  completeCooldown(@Param('assignmentId') assignmentId: string) {
+    return this.sessionsService.completeCooldown(assignmentId);
+  }
+
   @Delete()
   @HttpCode(204)
   cancel(@Param('assignmentId') assignmentId: string) {

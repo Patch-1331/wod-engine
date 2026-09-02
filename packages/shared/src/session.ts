@@ -18,6 +18,10 @@ export const workoutSessionSchema = z.object({
   finishedAtSeconds: z.number().int().nonnegative().nullable(),
   /** Optional user-chosen round count to break high-rep movements into; null = unsplit. */
   roundSplitCount: z.number().int().positive().nullable(),
+  // Feature #63 — stamped when each checklist is finished; null if skipped
+  // or the setting is off.
+  warmupCompletedAt: z.string().datetime().nullable(),
+  cooldownCompletedAt: z.string().datetime().nullable(),
 });
 export type WorkoutSession = z.infer<typeof workoutSessionSchema>;
 

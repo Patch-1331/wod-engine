@@ -4,8 +4,10 @@ import type {
   ScheduleCap,
   SetRoundSplitRequest,
   SetSkillLevelRequest,
+  Settings,
   SkillLevel,
   TodayResponse,
+  UpdateSettings,
   WorkoutLog,
   WorkoutLogListItem,
   WorkoutSession,
@@ -64,6 +66,10 @@ export const api = {
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/rounds`, round),
   finishSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/finish`),
+  completeWarmup: (assignmentId: string) =>
+    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/warmup-complete`),
+  completeCooldown: (assignmentId: string) =>
+    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/cooldown-complete`),
   cancelSession: (assignmentId: string) =>
     request<void>(`/assignments/${assignmentId}/session`, { method: "DELETE" }),
   setRoundSplit: (assignmentId: string, body: SetRoundSplitRequest) =>
@@ -77,4 +83,7 @@ export const api = {
   skillLevels: () => request<SkillLevel[]>("/skill-levels"),
   setSkillLevel: (line: string, body: SetSkillLevelRequest) =>
     patchJson<SkillLevel>(`/skill-levels/${line}`, body),
+
+  settings: () => request<Settings>("/settings"),
+  updateSettings: (body: UpdateSettings) => patchJson<Settings>("/settings", body),
 };

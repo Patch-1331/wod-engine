@@ -43,6 +43,10 @@ export function TodayPage() {
   const { id: assignmentId, wod, status } = data.assignment;
   const isCompleted = status === "completed";
   const isInProgress = status === "in_progress";
+  // A session already exists once in progress, so the warm-up checklist —
+  // shown before a session starts — has either already run or doesn't apply.
+  const hasWarmup = data.warmupCooldownEnabled && (data.warmup?.length ?? 0) > 0;
+  const startPath = !isInProgress && hasWarmup ? `/warmup/${assignmentId}` : `/workout/${assignmentId}`;
   // True whenever at least one movement is on a tracked progression line
   // (Feature #2) — the scheduler already substituted every such movement
   // for the exercise at the user's current rung before this response left
@@ -116,7 +120,7 @@ export function TodayPage() {
         ) : (
           <>
             <ToggleStart
-              onClick={() => navigate(`/workout/${assignmentId}`)}
+              onClick={() => navigate(startPath)}
               label={isInProgress ? "RESUME WORKOUT" : "START WORKOUT"}
               energized={isInProgress}
             />

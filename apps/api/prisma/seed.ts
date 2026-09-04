@@ -110,6 +110,11 @@ type WodSeed = {
   type: "amrap" | "for_time" | "emom" | "tabata";
   timeCapMinutes: number;
   rounds: number | null;
+  // Interval structure for the emom/tabata timer (Feature #30) — omitted on
+  // AMRAP/For Time, which are round-tapped rather than auto-advanced.
+  workSeconds?: number;
+  restSeconds?: number;
+  intervalCount?: number;
   isNamed: boolean;
   dominantPattern: string;
   movements: { exercise: string; reps: number }[];
@@ -224,6 +229,9 @@ const wods: WodSeed[] = [
     type: "emom",
     timeCapMinutes: 12,
     rounds: 12,
+    workSeconds: 60,
+    restSeconds: 0,
+    intervalCount: 12,
     isNamed: false,
     dominantPattern: "pull",
     movements: [
@@ -236,6 +244,9 @@ const wods: WodSeed[] = [
     type: "emom",
     timeCapMinutes: 16,
     rounds: 16,
+    workSeconds: 60,
+    restSeconds: 0,
+    intervalCount: 16,
     isNamed: false,
     dominantPattern: "push",
     // True to the name: even minutes push, odd minutes pull — exactly two
@@ -250,6 +261,11 @@ const wods: WodSeed[] = [
     type: "tabata",
     timeCapMinutes: 14,
     rounds: 24, // 8 rounds x 3 movements
+    // Classic 20/10, three movements deep: 24 x 30s = 12 minutes of work,
+    // inside the 14-minute cap.
+    workSeconds: 20,
+    restSeconds: 10,
+    intervalCount: 24,
     isNamed: false,
     dominantPattern: "cardio",
     movements: [
@@ -313,6 +329,9 @@ async function main() {
         type: w.type,
         timeCapMinutes: w.timeCapMinutes,
         rounds: w.rounds,
+        workSeconds: w.workSeconds ?? null,
+        restSeconds: w.restSeconds ?? null,
+        intervalCount: w.intervalCount ?? null,
         isNamed: w.isNamed,
         dominantPattern: w.dominantPattern,
         movements: {
@@ -328,6 +347,9 @@ async function main() {
         type: w.type,
         timeCapMinutes: w.timeCapMinutes,
         rounds: w.rounds,
+        workSeconds: w.workSeconds ?? null,
+        restSeconds: w.restSeconds ?? null,
+        intervalCount: w.intervalCount ?? null,
         isNamed: w.isNamed,
         dominantPattern: w.dominantPattern,
         movements: {

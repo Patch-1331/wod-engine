@@ -64,6 +64,13 @@ model Wod {
   type            String // amrap | for_time | emom | tabata
   timeCapMinutes  Int
   rounds          Int?
+  // Interval structure for the emom/tabata timer (Feature #30). Null on
+  // AMRAP/For Time, and on interval WODs seeded before these existed —
+  // `resolveIntervalConfig` in packages/shared fills those in with the
+  // format's classic structure (EMOM 60s, Tabata 20s work / 10s rest x 8).
+  workSeconds     Int?
+  restSeconds     Int?
+  intervalCount   Int?
   isNamed         Boolean @default(false)
   dominantPattern String // push | pull | squat | hinge | core | cardio
 
@@ -119,6 +126,12 @@ model WorkoutSession {
   // Feature #63 — stamped when each checklist is finished; read later for stats.
   warmupCompletedAt   DateTime?
   cooldownCompletedAt DateTime?
+
+  // Feature #30 — how far the EMOM/Tabata interval timer has got, written on
+  // every interval rollover for the same reason roundSplits is written on
+  // every tap: a locked phone or a refresh must not restart the sequence.
+  intervalIndex            Int? // 0-based interval in progress; == intervalCount once the sequence has run out
+  intervalStartedAtSeconds Int? // elapsed seconds (from startedAt) at which that interval began
 }
 
 model WorkoutLog {

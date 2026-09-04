@@ -3,10 +3,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { RoundSplit, WorkoutSession } from '@wod-engine/shared';
+import type {
+  AdvanceInterval,
+  RoundSplit,
+  WodType,
+  WorkoutSession,
+} from '@wod-engine/shared';
+import { resolveIntervalConfig } from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseSplits, toSessionDto } from './session.mapper';
-import { mergeRoundSplit } from './session.logic';
+import { advanceInterval, mergeRoundSplit } from './session.logic';
 
 @Injectable()
 export class SessionsService {
@@ -73,6 +79,54 @@ export class SessionsService {
     const updated = await this.prisma.workoutSession.update({
       where: { assignmentId },
       data: { roundSplits: JSON.stringify(updatedSplits) },
+    });
+
+    return toSessionDto(updated);
+  }
+
+  /**
+   * Records an EMOM/Tabata interval rollover (Feature #30) — the interval
+   * screen posts one as each interval starts, including a final call one
+   * past the last interval when the sequence runs out.
+   */
+  async advanceInterval(
+    assignmentId: string,
+    next: AdvanceInterval,
+  ): Promise<WorkoutSession> {
+    const session = await this.prisma.workoutSession.findUnique({
+      where: { assignmentId },
+      include: { assignment: { include: { wod: true } } },
+    });
+    if (!session)
+      throw new NotFoundException('No active session for this assignment');
+    if (session.status !== 'in_progress') {
+      throw new BadRequestException('Session is no longer in progress');
+    }
+
+    const wod = session.assignment.wod;
+    const config = wod
+      ? resolveIntervalConfig({ ...wod, type: wod.type as WodType })
+      : null;
+    if (!config) {
+      throw new BadRequestException('This WOD has no interval structure');
+    }
+    // One past the last interval is the "sequence finished" marker; anything
+    // beyond that is a client bug, not a state worth persisting.
+    if (next.intervalIndex > config.intervalCount) {
+      throw new BadRequestException(
+        `Interval ${next.intervalIndex} is past the end of this WOD`,
+      );
+    }
+
+    const progress = advanceInterval(parseSplits(session.roundSplits), next);
+
+    const updated = await this.prisma.workoutSession.update({
+      where: { assignmentId },
+      data: {
+        roundSplits: JSON.stringify(progress.roundSplits),
+        intervalIndex: progress.intervalIndex,
+        intervalStartedAtSeconds: progress.intervalStartedAtSeconds,
+      },
     });
 
     return toSessionDto(updated);

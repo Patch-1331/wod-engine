@@ -2,6 +2,7 @@ export * from "./checklist";
 export * from "./enums";
 export * from "./exercise";
 export * from "./wod";
+export * from "./interval";
 export * from "./schedule";
 export * from "./assignment";
 export * from "./today";

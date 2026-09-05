@@ -73,13 +73,12 @@ jobs:
   # `npm audit` on production dependencies only. Dev-only advisories are noisy
   # and do not ship to users.
   #
-  # Non-blocking for now: the known react-router advisories (#82) would
-  # otherwise fail every PR, including the one that fixes them. Remove
-  # `continue-on-error` once #82 lands, so this becomes a real gate.
+  # Blocking as of the react-router v7 upgrade in this same commit, which took
+  # the count to zero. A PR that reintroduces a moderate-or-worse advisory in
+  # a shipped dependency now fails here rather than merely reporting.
   audit:
     name: npm audit
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 

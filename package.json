@@ -7,6 +7,9 @@
   ],
   "scripts": {
     "postinstall": "npm run build --workspace packages/shared",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "security:scan": "gitleaks git --no-banner --redact --verbose -c .gitleaks.toml .",
+    "security:audit": "npm audit --omit=dev --audit-level=moderate",
     "dev:api": "npm run start:dev --workspace apps/api",
     "dev:web": "npm run dev --workspace apps/web",
     "build": "npm run build --workspace packages/shared && npm run build --workspaces --if-present",

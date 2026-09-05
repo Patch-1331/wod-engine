@@ -1,0 +1,16 @@
+# gitleaks configuration for wod-engine.
+# Extends the upstream default ruleset rather than replacing it.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+The NestJS project scaffold ships a README containing a CircleCI badge URL with
+the literal placeholder token 'abc123def456'. It is unmodified upstream
+boilerplate from `nest new`, not a credential. Verified: the string appears only
+in the initial scaffold commit and nowhere else in history.
+"""
+regexTarget = "match"
+regexes = ['''abc123def456''']
+paths = ['''apps/api/README\.md''']

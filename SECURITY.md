@@ -23,9 +23,17 @@ with no formal response-time or disclosure commitment.
   actions are pinned to full commit SHAs.
 - **Secrets** are never committed. `.env` files are gitignored;
   `apps/api/.env.example` documents the required variables with dummy values.
+- **gitleaks** scans the full git history on every push and pull request, and
+  runs as a pre-commit hook locally (`npm run hooks:install`).
+- **CodeQL** static analysis and **dependency review** run on pull requests.
 
-## Known gaps
+## Running the checks yourself
 
-Secret scanning with push protection and CodeQL code scanning are not active,
-because GitHub offers them free only on public repositories — on a private
-repository they require GitHub Advanced Security.
+```sh
+npm run hooks:install   # one time: enable the pre-commit secret scan
+npm run security:scan   # gitleaks over the full history
+npm run security:audit  # npm audit, production dependencies only
+```
+
+gitleaks is expected on `PATH` (`brew install gitleaks`). The pre-commit hook
+skips with a warning if it is missing rather than failing the commit.

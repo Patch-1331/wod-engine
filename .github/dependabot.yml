@@ -1,0 +1,23 @@
+version: 2
+
+updates:
+  # Application dependencies across the npm workspaces (apps/*, packages/*).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Keep routine version churn to a single PR; security fixes still open
+      # their own PR immediately, outside this grouping.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Keep the pinned action SHAs in .github/workflows current. Dependabot
+  # rewrites both the SHA and its trailing version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

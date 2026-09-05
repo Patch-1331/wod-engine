@@ -15,7 +15,7 @@
     "@wod-engine/shared": "*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^6.27.0"
+    "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",

@@ -1,23 +1,46 @@
 version: 2
 
+# Noise policy: routine version churn is batched into as few pull requests as
+# possible, on a monthly cadence. Security updates ignore all of this -- they
+# open their own pull request as soon as an advisory lands, which is the point.
+#
+# Deliberately NOT using `ignore` to suppress major versions: ignore conditions
+# also apply to security updates, and a security fix that requires a major bump
+# is exactly the case we must not hide (see #82, react-router v6 -> v7).
+
 updates:
   # Application dependencies across the npm workspaces (apps/*, packages/*).
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 3
     groups:
-      # Keep routine version churn to a single PR; security fixes still open
-      # their own PR immediately, outside this grouping.
-      minor-and-patch:
+      # One PR for the safe churn.
+      npm-minor-and-patch:
+        patterns:
+          - "*"
         update-types:
           - minor
           - patch
+      # One PR for everything that needs a human decision, rather than one PR
+      # per major bump.
+      npm-major:
+        patterns:
+          - "*"
+        update-types:
+          - major
 
   # Keep the pinned action SHAs in .github/workflows current. Dependabot
   # rewrites both the SHA and its trailing version comment.
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      # All action updates in a single PR, including majors. Without this,
+      # codeql-action/init and codeql-action/analyze alone open two.
+      actions:
+        patterns:
+          - "*"

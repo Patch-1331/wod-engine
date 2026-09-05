@@ -4,8 +4,10 @@ import type {
   ScheduleCap,
   SetRoundSplitRequest,
   SetSkillLevelRequest,
+  Settings,
   SkillLevel,
   TodayResponse,
+  UpdateSettings,
   WorkoutLog,
   WorkoutLogListItem,
   WorkoutSession,
@@ -18,8 +20,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText} for ${path}`);
   }
-  if (res.status === 204) return undefined as T;
-  return res.json();
+  // Endpoints that model "absent" as an empty response (a log or session that
+  // doesn't exist yet) send no body at all, so don't hand that to JSON.parse.
+  const text = await res.text();
+  if (text === "") return undefined as T;
+  return JSON.parse(text) as T;
+}
+
+/**
+ * GET for a resource the API reports as absent with `204 No Content`. Resolves
+ * to `null` rather than `undefined`, which React Query rejects as query data.
+ */
+async function requestOptional<T>(path: string): Promise<T | null> {
+  return (await request<T | null>(path)) ?? null;
 }
 
 function postJson<T>(path: string, body?: unknown) {
@@ -59,11 +72,15 @@ export const api = {
   startSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session`),
   getSession: (assignmentId: string) =>
-    request<WorkoutSession | null>(`/assignments/${assignmentId}/session`),
+    requestOptional<WorkoutSession>(`/assignments/${assignmentId}/session`),
   logRound: (assignmentId: string, round: RoundSplit) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/rounds`, round),
   finishSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/finish`),
+  completeWarmup: (assignmentId: string) =>
+    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/warmup-complete`),
+  completeCooldown: (assignmentId: string) =>
+    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/cooldown-complete`),
   cancelSession: (assignmentId: string) =>
     request<void>(`/assignments/${assignmentId}/session`, { method: "DELETE" }),
   setRoundSplit: (assignmentId: string, body: SetRoundSplitRequest) =>
@@ -71,10 +88,13 @@ export const api = {
 
   saveLog: (assignmentId: string, body: LogResultRequest) =>
     postJson<WorkoutLog>(`/assignments/${assignmentId}/log`, body),
-  getLog: (assignmentId: string) => request<WorkoutLog | null>(`/assignments/${assignmentId}/log`),
+  getLog: (assignmentId: string) => requestOptional<WorkoutLog>(`/assignments/${assignmentId}/log`),
   logs: () => request<WorkoutLogListItem[]>("/logs"),
 
   skillLevels: () => request<SkillLevel[]>("/skill-levels"),
   setSkillLevel: (line: string, body: SetSkillLevelRequest) =>
     patchJson<SkillLevel>(`/skill-levels/${line}`, body),
+
+  settings: () => request<Settings>("/settings"),
+  updateSettings: (body: UpdateSettings) => patchJson<Settings>("/settings", body),
 };

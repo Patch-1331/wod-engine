@@ -4,6 +4,7 @@ const tabs = [
   { to: "/", label: "Today" },
   { to: "/history", label: "History" },
   { to: "/stats", label: "Stats" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export function TabBar() {

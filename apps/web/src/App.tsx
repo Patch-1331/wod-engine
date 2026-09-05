@@ -5,6 +5,9 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { StatsPage } from "./pages/StatsPage";
 import { ActiveWorkoutPage } from "./pages/ActiveWorkoutPage";
 import { LogResultPage } from "./pages/LogResultPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { WarmupPage } from "./pages/WarmupPage";
+import { CooldownPage } from "./pages/CooldownPage";
 
 function TabbedLayout() {
   return (
@@ -24,6 +27,7 @@ function App() {
         <Route path="/" element={<TodayPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/stats" element={<StatsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route
         path="/workout/:assignmentId"
@@ -34,6 +38,8 @@ function App() {
         }
       />
       <Route path="/log/:assignmentId" element={<LogResultPage />} />
+      <Route path="/warmup/:assignmentId" element={<WarmupPage />} />
+      <Route path="/cooldown/:assignmentId" element={<CooldownPage />} />
     </Routes>
   );
 }

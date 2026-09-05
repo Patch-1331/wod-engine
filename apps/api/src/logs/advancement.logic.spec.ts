@@ -13,7 +13,7 @@ describe('totalRepsForMovement', () => {
     expect(totalRepsForMovement({ reps: 8 }, 0, null)).toBe(0);
   });
 
-  it('treats a single-round WOD\'s reps as the full prescribed amount', () => {
+  it("treats a single-round WOD's reps as the full prescribed amount", () => {
     // e.g. a for_time WOD with rounds: 1 and reps: 75 — one "round complete"
     // tap means the whole 75 was done.
     expect(totalRepsForMovement({ reps: 75 }, 1, null)).toBe(75);
@@ -35,8 +35,14 @@ describe('totalRepsForMovement', () => {
 });
 
 describe('computeRungChanges', () => {
-  const pushUp: MovementForAdvancement = { reps: 8, exercise: { line: 'push_horizontal' } };
-  const airSquat: MovementForAdvancement = { reps: 15, exercise: { line: 'squat' } };
+  const pushUp: MovementForAdvancement = {
+    reps: 8,
+    exercise: { line: 'push_horizontal' },
+  };
+  const airSquat: MovementForAdvancement = {
+    reps: 15,
+    exercise: { line: 'squat' },
+  };
   const burpee: MovementForAdvancement = { reps: 10, exercise: { line: null } };
 
   const maxRungByLine = new Map([
@@ -46,45 +52,87 @@ describe('computeRungChanges', () => {
 
   it('advances a line when the equivalent of 3x8 was cleanly performed', () => {
     const currentRung = new Map([['push_horizontal', 1]]);
-    const changes = computeRungChanges([pushUp], 3, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [pushUp],
+      3,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([{ line: 'push_horizontal', from: 1, to: 2 }]);
   });
 
   it('drops a line when reps fall below the 3x5 floor', () => {
     const currentRung = new Map([['push_horizontal', 2]]);
     // 1 round of 8 reps = 8 total, well under the 15-rep floor.
-    const changes = computeRungChanges([pushUp], 1, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [pushUp],
+      1,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([{ line: 'push_horizontal', from: 2, to: 1 }]);
   });
 
   it('holds steady in between the two thresholds', () => {
     const currentRung = new Map([['push_horizontal', 1]]);
     // 2 rounds of 8 = 16 total — above the 15 floor, below the 24 ceiling.
-    const changes = computeRungChanges([pushUp], 2, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [pushUp],
+      2,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([]);
   });
 
   it('never advances a line past its known maximum rung', () => {
     const currentRung = new Map([['push_horizontal', 3]]); // already at the ceiling
-    const changes = computeRungChanges([pushUp], 5, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [pushUp],
+      5,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([]);
   });
 
   it('never drops a line below rung 0', () => {
     const currentRung = new Map([['push_horizontal', 0]]);
-    const changes = computeRungChanges([pushUp], 1, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [pushUp],
+      1,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([]);
   });
 
   it('ignores movements with no tracked line', () => {
     const currentRung = new Map([['push_horizontal', 1]]);
-    const changes = computeRungChanges([burpee], 3, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [burpee],
+      3,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([]);
   });
 
   it('ignores a line with no recorded SkillLevel row', () => {
     const currentRung = new Map<string, number>(); // no rows at all
-    const changes = computeRungChanges([pushUp], 3, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [pushUp],
+      3,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([]);
   });
 
@@ -96,7 +144,13 @@ describe('computeRungChanges', () => {
     // 3 completed rounds: push-up totals 3x8=24 (advance), air squat totals
     // 3x15=45 (also advance — a movement only ever moves its own line by
     // one rung regardless of how far past the threshold it lands).
-    const changes = computeRungChanges([pushUp, airSquat], 3, null, currentRung, maxRungByLine);
+    const changes = computeRungChanges(
+      [pushUp, airSquat],
+      3,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
     expect(changes).toEqual([
       { line: 'push_horizontal', from: 1, to: 2 },
       { line: 'squat', from: 1, to: 2 },

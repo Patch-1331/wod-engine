@@ -115,6 +115,43 @@ export class SessionsService {
     return toSessionDto(updated);
   }
 
+  /**
+   * Stamps warmupCompletedAt (Feature #63) — the web app only calls this
+   * when every checklist item was checked off before proceeding. An
+   * explicit skip leaves it null; the timestamp specifically means "the
+   * warm-up was actually done," not just "the screen was passed through."
+   */
+  async completeWarmup(assignmentId: string): Promise<WorkoutSession> {
+    const session = await this.prisma.workoutSession.findUnique({
+      where: { assignmentId },
+    });
+    if (!session)
+      throw new NotFoundException('No active session for this assignment');
+
+    const updated = await this.prisma.workoutSession.update({
+      where: { assignmentId },
+      data: { warmupCompletedAt: new Date() },
+    });
+
+    return toSessionDto(updated);
+  }
+
+  /** Same contract as completeWarmup, for the cool-down checklist (Feature #63). */
+  async completeCooldown(assignmentId: string): Promise<WorkoutSession> {
+    const session = await this.prisma.workoutSession.findUnique({
+      where: { assignmentId },
+    });
+    if (!session)
+      throw new NotFoundException('No active session for this assignment');
+
+    const updated = await this.prisma.workoutSession.update({
+      where: { assignmentId },
+      data: { cooldownCompletedAt: new Date() },
+    });
+
+    return toSessionDto(updated);
+  }
+
   async cancel(assignmentId: string): Promise<void> {
     const session = await this.prisma.workoutSession.findUnique({
       where: { assignmentId },

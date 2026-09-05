@@ -129,9 +129,15 @@ describe('isRestDay', () => {
 
 describe('applyCurrentRung', () => {
   type FakeExercise = ExerciseWithLine & { name: string };
-  const kneePushUp: FakeExercise = { name: 'Knee push-up', line: 'push_horizontal' };
+  const kneePushUp: FakeExercise = {
+    name: 'Knee push-up',
+    line: 'push_horizontal',
+  };
   const pushUp: FakeExercise = { name: 'Push-up', line: 'push_horizontal' };
-  const diamondPushUp: FakeExercise = { name: 'Diamond push-up', line: 'push_horizontal' };
+  const diamondPushUp: FakeExercise = {
+    name: 'Diamond push-up',
+    line: 'push_horizontal',
+  };
   const airSquat: FakeExercise = { name: 'Air squat', line: 'squat' };
   const pistolSquat: FakeExercise = { name: 'Pistol squat', line: 'squat' };
   const burpee: FakeExercise = { name: 'Burpee', line: null };

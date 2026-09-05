@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Exercise } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { toSessionDto } from '../sessions/session.mapper';
+import { WodsService } from '../wods/wods.service';
 import {
   applyCurrentRung,
   getWeekRange,
@@ -19,31 +20,42 @@ const wodInclude = {
 
 @Injectable()
 export class SchedulerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly wodsService: WodsService,
+  ) {}
 
   /** Returns today's assignment, generating one if the day hasn't been decided yet. */
   async getToday(today: string) {
+    const rule = await this.prisma.scheduleRule.findFirst();
+    const warmupCooldownEnabled = rule?.warmupCooldownEnabled ?? false;
+
     const existing = await this.prisma.dailyAssignment.findUnique({
       where: { date: today },
       include: { wod: { include: wodInclude }, session: true },
     });
 
     if (existing) {
+      const assignment =
+        existing.status === 'skipped' || !existing.wod
+          ? null
+          : {
+              id: existing.id,
+              date: existing.date,
+              status: existing.status,
+              wod: await this.scaleWodToCurrentRung(existing.wod),
+              session: existing.session ? toSessionDto(existing.session) : null,
+            };
+
       return {
         date: today,
         isRestDay: existing.status === 'skipped',
-        assignment:
-          existing.status === 'skipped' || !existing.wod
-            ? null
-            : {
-                id: existing.id,
-                date: existing.date,
-                status: existing.status,
-                wod: await this.scaleWodToCurrentRung(existing.wod),
-                session: existing.session
-                  ? toSessionDto(existing.session)
-                  : null,
-              },
+        assignment,
+        warmupCooldownEnabled,
+        ...(await this.getChecklistsFor(
+          warmupCooldownEnabled,
+          assignment?.wod.dominantPattern,
+        )),
       };
     }
 
@@ -55,12 +67,18 @@ export class SchedulerService {
       },
     });
 
-    const rule = await this.prisma.scheduleRule.findFirst();
     const maxDaysPerWeek = rule?.maxDaysPerWeek ?? 5;
     const cooldownDays = rule?.patternCooldownDays ?? 5;
 
     if (isRestDay(assignedThisWeek, maxDaysPerWeek)) {
-      return { date: today, isRestDay: true, assignment: null };
+      return {
+        date: today,
+        isRestDay: true,
+        assignment: null,
+        warmupCooldownEnabled,
+        warmup: null,
+        cooldown: null,
+      };
     }
 
     const wod = await this.generateWodForDate(today, cooldownDays);
@@ -70,6 +88,8 @@ export class SchedulerService {
       include: { wod: { include: wodInclude } },
     });
 
+    const scaledWod = await this.scaleWodToCurrentRung(created.wod!);
+
     return {
       date: today,
       isRestDay: false,
@@ -78,10 +98,26 @@ export class SchedulerService {
         date: created.date,
         status: created.status,
         // wodId was just set from a freshly-picked candidate, so the relation is present.
-        wod: await this.scaleWodToCurrentRung(created.wod!),
+        wod: scaledWod,
         session: null,
       },
+      warmupCooldownEnabled,
+      ...(await this.getChecklistsFor(
+        warmupCooldownEnabled,
+        scaledWod.dominantPattern,
+      )),
     };
+  }
+
+  /** Null lists when the setting is off or there's no WOD to build a checklist for. */
+  private async getChecklistsFor(
+    warmupCooldownEnabled: boolean,
+    dominantPattern: string | undefined,
+  ) {
+    if (!warmupCooldownEnabled || !dominantPattern) {
+      return { warmup: null, cooldown: null };
+    }
+    return this.wodsService.getChecklists(dominantPattern);
   }
 
   /**
@@ -124,7 +160,15 @@ export class SchedulerService {
       update: { status: 'skipped' },
       create: { date: today, status: 'skipped' },
     });
-    return { date: today, isRestDay: true, assignment: null };
+    const rule = await this.prisma.scheduleRule.findFirst();
+    return {
+      date: today,
+      isRestDay: true,
+      assignment: null,
+      warmupCooldownEnabled: rule?.warmupCooldownEnabled ?? false,
+      warmup: null,
+      cooldown: null,
+    };
   }
 
   private async generateWodForDate(today: string, cooldownDays: number) {

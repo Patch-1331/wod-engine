@@ -5,7 +5,9 @@ const prisma = new PrismaClient();
 
 type ExerciseSeed = {
   name: string;
-  pattern: string;
+  // Null only for general warm-up/cool-down filler not tied to a pattern
+  // (e.g. light jogging, deep breathing).
+  pattern: string | null;
   needsBar?: boolean;
   scalable?: boolean;
   alt?: string; // name of the no-equipment substitute
@@ -17,6 +19,9 @@ type ExerciseSeed = {
   rung?: number;
   // Defaults to "reps" — set to "seconds" for timed holds (plank family).
   unit?: "reps" | "seconds";
+  // Warm-up/cool-down tagging (Feature #63). Null/omitted for regular pool
+  // exercises — only checklist content gets a phase.
+  phase?: "warmup" | "cooldown";
 };
 
 const exercises: ExerciseSeed[] = [
@@ -81,6 +86,23 @@ const exercises: ExerciseSeed[] = [
   { name: "Squat thrust", pattern: "cardio" },
   { name: "Mountain climber", pattern: "cardio" },
   { name: "High knees", pattern: "cardio" },
+
+  // Warm-up (Feature #63) — tagged with the pattern they best prep, so a
+  // WOD's dominantPattern can pull in relevant moves.
+  { name: "Arm circles", pattern: "push", phase: "warmup" },
+  { name: "Leg swings", pattern: "hinge", phase: "warmup" },
+  { name: "Bodyweight squats", pattern: "squat", phase: "warmup" },
+  { name: "Inchworms", pattern: "core", phase: "warmup" },
+  { name: "Scapular pull-ups", pattern: "pull", phase: "warmup" },
+  { name: "Light jogging in place", pattern: null, phase: "warmup" },
+
+  // Cool-down (Feature #63)
+  { name: "Static quad stretch", pattern: "squat", phase: "cooldown" },
+  { name: "Child's pose", pattern: "hinge", phase: "cooldown" },
+  { name: "Cat-cow", pattern: "core", phase: "cooldown" },
+  { name: "Doorway chest stretch", pattern: "push", phase: "cooldown" },
+  { name: "Cross-body shoulder stretch", pattern: "pull", phase: "cooldown" },
+  { name: "Deep breathing", pattern: null, phase: "cooldown" },
 ];
 
 type WodSeed = {
@@ -252,6 +274,7 @@ async function main() {
         unit: e.unit ?? "reps",
         line: e.line ?? null,
         rung: e.rung ?? null,
+        phase: e.phase ?? null,
       },
       create: {
         name: e.name,
@@ -261,6 +284,7 @@ async function main() {
         unit: e.unit ?? "reps",
         line: e.line ?? null,
         rung: e.rung ?? null,
+        phase: e.phase ?? null,
       },
     });
     idByName.set(e.name, row.id);

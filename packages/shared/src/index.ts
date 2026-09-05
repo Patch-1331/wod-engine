@@ -1,3 +1,4 @@
+export * from "./checklist";
 export * from "./enums";
 export * from "./exercise";
 export * from "./wod";
@@ -5,6 +6,7 @@ export * from "./schedule";
 export * from "./assignment";
 export * from "./today";
 export * from "./session";
+export * from "./settings";
 export * from "./log";
 export * from "./user";
 export * from "./skill-level";

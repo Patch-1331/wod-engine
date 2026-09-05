@@ -1,0 +1,21 @@
+#!/bin/sh
+# Block a commit that would introduce a secret.
+#
+# Enable with:  npm run hooks:install
+# Bypass once:  git commit --no-verify
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+	echo "pre-commit: gitleaks not installed, skipping secret scan." >&2
+	echo "            install with 'brew install gitleaks'" >&2
+	exit 0
+fi
+
+# --staged scans what is about to be committed, which is the only thing this
+# hook can still prevent. History is covered by the Security workflow in CI.
+if ! gitleaks git --staged --no-banner --redact --verbose -c .gitleaks.toml .; then
+	echo >&2
+	echo "pre-commit: gitleaks found a potential secret in the staged changes." >&2
+	echo "            Remove it, or add an allowlist entry to .gitleaks.toml if" >&2
+	echo "            it is a false positive. To commit anyway: git commit --no-verify" >&2
+	exit 1
+fi

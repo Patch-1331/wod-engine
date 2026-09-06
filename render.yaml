@@ -13,13 +13,13 @@ databases:
     databaseName: wod_engine
     user: wod_engine
     plan: free
-    region: oregon
+    region: ohio
 
 services:
   - type: web
     name: wod-engine-api
     runtime: node
-    region: oregon
+    region: ohio
     plan: free
     branch: main
     # Install at the repo root: this is an npm workspaces monorepo and

@@ -1,0 +1,26 @@
+# Local Postgres for development. The API's Prisma datasource is postgresql,
+# so `npm run dev:api` needs this running:
+#
+#   docker compose up -d
+#   npm run prisma:migrate --workspace apps/api
+#   npm run prisma:seed --workspace apps/api
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wod_engine
+      POSTGRES_PASSWORD: wod_engine
+      POSTGRES_DB: wod_engine
+    ports:
+      - "5432:5432"
+    volumes:
+      - wod-engine-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wod_engine -d wod_engine"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  wod-engine-pgdata:

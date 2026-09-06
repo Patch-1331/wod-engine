@@ -1,0 +1,48 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Create via the Render dashboard: New -> Blueprint -> pick this repo. Render
+# reads this file from the selected branch and syncs on every push that
+# changes it. Services created by hand in the dashboard are NOT adopted by a
+# blueprint; they have to be re-created from here.
+#
+# Region must match between the web service and the database, otherwise the
+# service can't reach the database over its internal connection string.
+
+databases:
+  - name: wod-engine-db
+    databaseName: wod_engine
+    user: wod_engine
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: wod-engine-api
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    # Install at the repo root: this is an npm workspaces monorepo and
+    # apps/api depends on @wod-engine/shared, so apps/api can't install alone.
+    rootDir: .
+    # prisma generate is explicit because the root postinstall only builds
+    # packages/shared, and @prisma/client's own postinstall doesn't reliably
+    # find apps/api/prisma/schema.prisma through a hoisted workspace install.
+    # migrate deploy belongs in preDeployCommand, but that's a paid-plan
+    # feature; on free it runs here, which is fine for a single instance.
+    buildCommand: >-
+      npm ci &&
+      npm run prisma:generate --workspace apps/api &&
+      npm run build &&
+      npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+    # Not dist/main: prisma/seed.ts sits inside the compile scope, so nest
+    # build emits to dist/src/ rather than flattening to dist/.
+    startCommand: node apps/api/dist/src/main
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wod-engine-db
+          property: connectionString
+      - key: NODE_VERSION
+        value: "22"

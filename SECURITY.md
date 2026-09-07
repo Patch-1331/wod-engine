@@ -1,8 +1,10 @@
 # Security Policy
 
-WOD Engine is a personal project. It is pre-release and has no production
-deployment, so there is no supported release line yet — security fixes land on
-`main`.
+WOD Engine is a personal project with a live deployment: the API at
+<https://wod-engine-api.onrender.com> and the web app at
+<https://wod-engine-web.onrender.com>, both auto-deployed from `main`. There is
+no released version line — `main` is what is running, so security fixes reach
+production as soon as they merge.
 
 ## Reporting a vulnerability
 
@@ -26,6 +28,14 @@ with no formal response-time or disclosure commitment.
 - **gitleaks** scans the full git history on every push and pull request, and
   runs as a pre-commit hook locally (`npm run hooks:install`).
 - **CodeQL** static analysis and **dependency review** run on pull requests.
+- **Every route requires a verified Clerk session token** — the guard is bound
+  globally, so a new controller is authenticated by default rather than by
+  remembering to add a decorator. The health check is the sole exception.
+- **Every query is scoped to the requesting user**, and the database enforces
+  it independently: sessions and logs carry a composite foreign key onto
+  `(assignment id, user id)`, so a row whose owner disagrees with its
+  assignment's cannot be stored at all.
+- **Rate limiting** is applied per client IP across all routes.
 
 ## Running the checks yourself
 

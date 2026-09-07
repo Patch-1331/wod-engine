@@ -12,10 +12,20 @@ databases:
   - name: wod-engine-db
     databaseName: wod_engine
     user: wod_engine
-    # Free databases expire 30 days after creation (2026-10-07) and are deleted
+    # Not free: free databases expire 30 days after creation and are deleted
     # after a 14-day grace period, taking all data with them. $6/month.
     plan: 0.1c-256mb
     region: ohio
+    # Block all external connections. The allow list governs only the external
+    # URL; wod-engine-api reaches the database over the internal URL, which
+    # ignores it, as do Render's backups, PITR and the dashboard psql shell.
+    # Render's default is 0.0.0.0/0 — open to the whole internet with only the
+    # password in the way. The cost of this is that a local psql or GUI client
+    # can no longer reach it; add a CIDR back here to restore that:
+    #   ipAllowList:
+    #     - source: "203.0.113.4/32"
+    #       description: "home"
+    ipAllowList: []
 
 services:
   - type: web

@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from './common/public.decorator';
 import { AppService } from './app.service';
 
@@ -7,7 +8,18 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   // Render's health check can't send an auth header.
+  //
+  // It is exempt from rate limiting too, and deliberately so: Render's probes
+  // arrive from its own network rather than through the Cloudflare edge, so
+  // they share one tracker key, and a throttled probe reads as an unhealthy
+  // service and restarts it. Being rate limited into a restart loop is a worse
+  // outcome than an unthrottled route that returns a constant string.
+  //
+  // Every tier has to be named explicitly. A bare @SkipThrottle() sets
+  // `{ default: true }`, which matches nothing when the tiers are named — it
+  // reads as an exemption while silently being none.
   @Public()
+  @SkipThrottle({ burst: true, sustained: true })
   @Get()
   getHello(): string {
     return this.appService.getHello();

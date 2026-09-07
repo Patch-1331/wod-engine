@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { verifyToken } from '@clerk/backend';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserProvisioningService } from '../auth/user-provisioning.service';
@@ -81,5 +82,30 @@ describe('ClerkAuthGuard wiring', () => {
 
   it('leaves the health check reachable for Render', () => {
     return request(app.getHttpServer()).get('/').expect(200);
+  });
+
+  /**
+   * Clerk skips the authorized-party check entirely when the option is absent,
+   * so its omission is invisible from the outside: every token still verifies,
+   * including one minted for a different frontend on the same instance. The
+   * only way to catch that regression is to assert the option is passed.
+   */
+  it('constrains verification to the configured web origins', async () => {
+    process.env.WEB_ORIGIN = 'https://wod-engine-web.onrender.com';
+    jest.mocked(verifyToken).mockClear();
+
+    await request(app.getHttpServer())
+      .get('/exercises')
+      .set('Authorization', 'Bearer valid-token')
+      .expect(200);
+
+    expect(jest.mocked(verifyToken)).toHaveBeenCalledWith(
+      'valid-token',
+      expect.objectContaining({
+        authorizedParties: ['https://wod-engine-web.onrender.com'],
+      }),
+    );
+
+    delete process.env.WEB_ORIGIN;
   });
 });

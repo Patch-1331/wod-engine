@@ -36,6 +36,10 @@ with no formal response-time or disclosure commitment.
   `(assignment id, user id)`, so a row whose owner disagrees with its
   assignment's cannot be stored at all.
 - **Rate limiting** is applied per client IP across all routes.
+- **Sign-up is invite-only.** The repository is public and the database is
+  small; open registration would let any passer-by provision rows. This is a
+  Clerk dashboard setting, so it leaves no trace in this repository — it is
+  recorded here because nothing in the code will reveal it.
 
 ## Running the checks yourself
 

@@ -30,11 +30,16 @@ services:
     # find apps/api/prisma/schema.prisma through a hoisted workspace install.
     # migrate deploy belongs in preDeployCommand, but that's a paid-plan
     # feature; on free it runs here, which is fine for a single instance.
+    # The seed is idempotent (upserts throughout, and skillLevel updates to a
+    # no-op so re-seeding never resets progress), so it's safe on every deploy.
+    # Without it migrate deploy leaves empty tables and the scheduler has no
+    # exercises or schedule rule to build a WOD from.
     buildCommand: >-
       npm ci &&
       npm run prisma:generate --workspace apps/api &&
       npm run build &&
-      npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+      npx prisma migrate deploy --schema apps/api/prisma/schema.prisma &&
+      npm run prisma:seed --workspace apps/api
     # Not dist/main: prisma/seed.ts sits inside the compile scope, so nest
     # build emits to dist/src/ rather than flattening to dist/.
     startCommand: node apps/api/dist/src/main
@@ -46,3 +51,12 @@ services:
           property: connectionString
       - key: NODE_VERSION
         value: "22"
+      # Shared secret for ApiTokenGuard. Render generates it and keeps it out
+      # of the repo; read it from the dashboard to call the API. The service
+      # refuses to boot without it, so it can never serve unauthenticated.
+      - key: API_TOKEN
+        generateValue: true
+      # No frontend is deployed yet. Set this to the web origin when one is,
+      # otherwise main.ts falls back to allowing only the Vite dev server.
+      - key: WEB_ORIGIN
+        sync: false

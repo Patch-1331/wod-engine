@@ -1,4 +1,5 @@
 import { Outlet, Route, Routes } from "react-router-dom";
+import { SignedIn, SignedOut, SignIn, UserButton } from "@clerk/clerk-react";
 import { TabBar } from "./components/TabBar";
 import { TodayPage } from "./pages/TodayPage";
 import { HistoryPage } from "./pages/HistoryPage";
@@ -12,6 +13,9 @@ import { CooldownPage } from "./pages/CooldownPage";
 function TabbedLayout() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-[var(--bg)]">
+      <div className="flex justify-end px-4 pt-3">
+        <UserButton />
+      </div>
       <div className="flex flex-1 flex-col overflow-y-auto">
         <Outlet />
       </div>
@@ -20,27 +24,47 @@ function TabbedLayout() {
   );
 }
 
+/**
+ * Every route reads per-user data, so there is nothing meaningful to render
+ * signed out — the whole app sits behind the gate rather than each page
+ * handling an empty state.
+ */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <SignedIn>{children}</SignedIn>
+      <SignedOut>
+        <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] p-4">
+          <SignIn routing="hash" />
+        </div>
+      </SignedOut>
+    </>
+  );
+}
+
 function App() {
   return (
-    <Routes>
-      <Route element={<TabbedLayout />}>
-        <Route path="/" element={<TodayPage />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/stats" element={<StatsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Route>
-      <Route
-        path="/workout/:assignmentId"
-        element={
-          <div className="mx-auto max-w-md">
-            <ActiveWorkoutPage />
-          </div>
-        }
-      />
-      <Route path="/log/:assignmentId" element={<LogResultPage />} />
-      <Route path="/warmup/:assignmentId" element={<WarmupPage />} />
-      <Route path="/cooldown/:assignmentId" element={<CooldownPage />} />
-    </Routes>
+    <AuthGate>
+      <Routes>
+        <Route element={<TabbedLayout />}>
+          <Route path="/" element={<TodayPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/stats" element={<StatsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+        <Route
+          path="/workout/:assignmentId"
+          element={
+            <div className="mx-auto max-w-md">
+              <ActiveWorkoutPage />
+            </div>
+          }
+        />
+        <Route path="/log/:assignmentId" element={<LogResultPage />} />
+        <Route path="/warmup/:assignmentId" element={<WarmupPage />} />
+        <Route path="/cooldown/:assignmentId" element={<CooldownPage />} />
+      </Routes>
+    </AuthGate>
   );
 }
 

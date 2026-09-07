@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { NoContentInterceptor } from './common/no-content.interceptor';
+import { webOrigins } from './common/origins';
 
 async function bootstrap() {
   // Fail fast rather than start unauthenticated: ClerkAuthGuard verifies every
@@ -15,16 +17,17 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
-  // Comma-separated allowlist. Defaults to the Vite dev server; set
-  // WEB_ORIGIN to the deployed web origin once the frontend ships.
-  // `||` not `??`: Render stores an unfilled sync:false variable as an empty
-  // string, and that should fall back to the default rather than becoming an
-  // empty allowlist that rejects every origin.
-  const origins = (process.env.WEB_ORIGIN || 'http://localhost:5173')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-  app.enableCors({ origin: origins });
+
+  // Response hardening. Mostly it drops `x-powered-by`, which advertises the
+  // framework to anyone scanning, and adds nosniff/frame headers.
+  //
+  // CORP is widened to cross-origin deliberately: the default same-origin
+  // policy is about embedding, and this API is *designed* to be read from the
+  // separately-hosted web app. CSP stays on its default — irrelevant to JSON,
+  // but the health check below does answer as text/html.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+  app.enableCors({ origin: webOrigins() });
   app.useGlobalInterceptors(new NoContentInterceptor());
   await app.listen(process.env.PORT ?? 3001);
 }

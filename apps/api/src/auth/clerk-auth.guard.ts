@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { verifyToken } from '@clerk/backend';
 import type { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../common/public.decorator';
+import { webOrigins } from '../common/origins';
 import { UserProvisioningService } from './user-provisioning.service';
 
 /** Where the verified Clerk user id is stashed for @CurrentUser() to read. */
@@ -22,6 +23,11 @@ export const AUTH_USER_ID = 'authUserId';
  *
  * Verification is networkless — the JWT is checked against Clerk's public
  * keys, so this costs no round trip per request.
+ *
+ * `authorizedParties` is what stops a token minted for some other frontend on
+ * the same Clerk instance from being spent here. Clerk skips the check
+ * entirely when the option is absent, so leaving it unset silently accepts any
+ * token the instance ever issued, whatever origin asked for it.
  */
 @Injectable()
 export class ClerkAuthGuard implements CanActivate {
@@ -47,6 +53,10 @@ export class ClerkAuthGuard implements CanActivate {
     try {
       const claims = await verifyToken(header.slice('Bearer '.length), {
         secretKey: process.env.CLERK_SECRET_KEY,
+        // Same allowlist CORS uses: the origins that are allowed to hold a
+        // token for this API are exactly the ones allowed to read its
+        // responses.
+        authorizedParties: webOrigins(),
       });
       // `sub` is Clerk's user id and is what User.id stores.
       userId = claims.sub;

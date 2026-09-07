@@ -44,16 +44,27 @@ services:
     # prisma generate is explicit because the root postinstall only builds
     # packages/shared, and @prisma/client's own postinstall doesn't reliably
     # find apps/api/prisma/schema.prisma through a hoisted workspace install.
-    # migrate deploy belongs in preDeployCommand, which the paid plan above now
-    # makes available; it still runs here, which is fine for a single instance.
+    buildCommand: >-
+      npm ci &&
+      npm run prisma:generate --workspace apps/api &&
+      npm run build
+    # Runs after the build succeeds but before the new instance starts, on a
+    # throwaway instance of its own; the paid plan above is what makes it
+    # available. A non-zero exit fails the whole deploy, so a bad migration
+    # never reaches startCommand and the current instance keeps serving.
+    # This is why migrations don't belong in buildCommand: a build runs to
+    # completion even when its deploy is never promoted — superseded by a
+    # newer commit, cancelled, or failed afterwards — so the schema changed
+    # under code that never shipped. Pre-deploy only runs for a deploy that is
+    # actually going out.
+    # healthCheckPath is evaluated against the new instance after startCommand,
+    # strictly later than this, so the app is only probed once the schema it
+    # expects is in place.
     # The seed is idempotent (upserts throughout, and skillLevel updates to a
     # no-op so re-seeding never resets progress), so it's safe on every deploy.
     # Without it migrate deploy leaves empty tables and the scheduler has no
     # exercises or schedule rule to build a WOD from.
-    buildCommand: >-
-      npm ci &&
-      npm run prisma:generate --workspace apps/api &&
-      npm run build &&
+    preDeployCommand: >-
       npx prisma migrate deploy --schema apps/api/prisma/schema.prisma &&
       npm run prisma:seed --workspace apps/api
     # Not dist/main: prisma/seed.ts sits inside the compile scope, so nest

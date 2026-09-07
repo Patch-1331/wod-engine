@@ -57,7 +57,40 @@ services:
       # without it, so it can never serve unauthenticated.
       - key: CLERK_SECRET_KEY
         sync: false
-      # No frontend is deployed yet. Set this to the web origin when one is,
-      # otherwise main.ts falls back to allowing only the Vite dev server.
+      # CORS allowlist. Set to the wod-engine-web origin once Render assigns
+      # it — the frontend calls this API cross-origin, so an unset value falls
+      # back to the Vite dev server and the deployed site is refused.
       - key: WEB_ORIGIN
+        sync: false
+
+  # Static frontend. Served from Render's CDN, so unlike the API it does not
+  # spin down on the free plan.
+  - type: web
+    name: wod-engine-web
+    runtime: static
+    branch: main
+    rootDir: .
+    # Only the web workspace: npm ci already builds packages/shared via the
+    # root postinstall, and the API is a separate service.
+    buildCommand: npm ci && npm run build --workspace apps/web
+    staticPublishPath: ./apps/web/dist
+    routes:
+      # React Router owns the paths. Without this, a refresh or a shared link
+      # to /history asks the CDN for a file that does not exist and 404s.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # Vite inlines these at build time, so both are baked into the bundle.
+      # That is correct for a publishable key and for a public API URL; never
+      # put a secret here.
+      # Set to the API's full origin, e.g. https://wod-engine-api.onrender.com
+      # — fromService could supply the host, but not the scheme, and this value
+      # is used as a URL prefix.
+      - key: VITE_API_BASE_URL
+        sync: false
+      # Clerk's publishable key for the instance this frontend signs in
+      # against. Public by design, but instance-specific, so it is set rather
+      # than committed — pk_test_ for development, pk_live_ for production.
+      - key: VITE_CLERK_PUBLISHABLE_KEY
         sync: false

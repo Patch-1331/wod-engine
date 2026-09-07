@@ -13,7 +13,12 @@ import type {
   WorkoutSession,
 } from "@wod-engine/shared";
 
-const API_BASE = "/api";
+// Defaults to the "/api" prefix that vite.config.ts proxies to the local API,
+// stripping the prefix on the way. There is no proxy in a deployed build, so
+// production sets this to the API's own origin — and the API serves its routes
+// at the root, which is why the deployed value carries no path.
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) || "/api";
 
 // Set once by ApiAuthBridge, which has access to Clerk's hooks. Calling this
 // per request (rather than caching a token here) lets Clerk hand back a fresh

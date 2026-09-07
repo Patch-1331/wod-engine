@@ -39,3 +39,30 @@ export function capReachedCue() {
   vibrate([150, 80, 150, 80, 150]);
   beep(440, 400);
 }
+
+/**
+ * Interval-timer cues (Feature #30). The EMOM/Tabata screen advances on its
+ * own, so these carry the transitions the athlete can't tap for: work is
+ * pitched high and rest low, and the last seconds of a phase tick so the
+ * next one never arrives unannounced.
+ */
+export function workStartCue() {
+  vibrate([120, 60, 120]);
+  beep(880, 250);
+}
+
+export function restStartCue() {
+  vibrate(80);
+  beep(440, 250);
+}
+
+/** The last few seconds of a phase — deliberately short and quiet next to the transition itself. */
+export function countdownTickCue() {
+  beep(660, 60);
+}
+
+/** The last interval has run out; only the Finish tap is left. */
+export function sequenceCompleteCue() {
+  vibrate([200, 80, 200, 80, 200]);
+  beep(520, 500);
+}

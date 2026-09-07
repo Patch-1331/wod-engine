@@ -1,4 +1,5 @@
 import type {
+  AdvanceInterval,
   LogResultRequest,
   RoundSplit,
   ScheduleCap,
@@ -96,6 +97,11 @@ export const api = {
     postJson<WorkoutSession>(
       `/assignments/${assignmentId}/session/rounds`,
       round,
+    ),
+  advanceInterval: (assignmentId: string, body: AdvanceInterval) =>
+    postJson<WorkoutSession>(
+      `/assignments/${assignmentId}/session/interval`,
+      body,
     ),
   finishSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/finish`),

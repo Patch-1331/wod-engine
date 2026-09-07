@@ -12,7 +12,9 @@ databases:
   - name: wod-engine-db
     databaseName: wod_engine
     user: wod_engine
-    plan: free
+    # Free databases expire 30 days after creation (2026-10-07) and are deleted
+    # after a 14-day grace period, taking all data with them. $6/month.
+    plan: 0.1c-256mb
     region: ohio
 
 services:
@@ -20,7 +22,11 @@ services:
     name: wod-engine-api
     runtime: node
     region: ohio
-    plan: free
+    # Free web services spin down after ~15 minutes idle, and the next request
+    # pays a cold start before the app's own ~5s boot. $7/month. Note the plan
+    # id: Render renamed instance types to compute plans, and "starter" is no
+    # longer an accepted value.
+    plan: 0.5c-512mb
     branch: main
     # Install at the repo root: this is an npm workspaces monorepo and
     # apps/api depends on @wod-engine/shared, so apps/api can't install alone.
@@ -28,8 +34,8 @@ services:
     # prisma generate is explicit because the root postinstall only builds
     # packages/shared, and @prisma/client's own postinstall doesn't reliably
     # find apps/api/prisma/schema.prisma through a hoisted workspace install.
-    # migrate deploy belongs in preDeployCommand, but that's a paid-plan
-    # feature; on free it runs here, which is fine for a single instance.
+    # migrate deploy belongs in preDeployCommand, which the paid plan above now
+    # makes available; it still runs here, which is fine for a single instance.
     # The seed is idempotent (upserts throughout, and skillLevel updates to a
     # no-op so re-seeding never resets progress), so it's safe on every deploy.
     # Without it migrate deploy leaves empty tables and the scheduler has no
@@ -63,8 +69,8 @@ services:
       - key: WEB_ORIGIN
         sync: false
 
-  # Static frontend. Served from Render's CDN, so unlike the API it does not
-  # spin down on the free plan.
+  # Static frontend. Served from Render's CDN, which is free at any scale — it
+  # needs no compute plan of its own.
   - type: web
     name: wod-engine-web
     runtime: static

@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ApiTokenGuard } from './common/api-token.guard';
+import { ClerkAuthGuard } from './auth/clerk-auth.guard';
+import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ExercisesModule } from './exercises/exercises.module';
 import { WodsModule } from './wods/wods.module';
@@ -15,6 +16,7 @@ import { SettingsModule } from './settings/settings.module';
 @Module({
   imports: [
     PrismaModule,
+    AuthModule,
     ExercisesModule,
     WodsModule,
     SchedulerModule,
@@ -24,6 +26,6 @@ import { SettingsModule } from './settings/settings.module';
     SettingsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ApiTokenGuard }],
+  providers: [AppService, { provide: APP_GUARD, useClass: ClerkAuthGuard }],
 })
 export class AppModule {}

@@ -4,21 +4,28 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserProvisioningService } from '../auth/user-provisioning.service';
+
+// Networkless JWT verification is Clerk's job and is not what this proves;
+// what matters here is that the guard runs on every route and rejects anything
+// it can't verify.
+jest.mock('@clerk/backend', () => ({
+  verifyToken: jest.fn((token: string) => {
+    if (token === 'valid-token') return Promise.resolve({ sub: 'user_alice' });
+    return Promise.reject(new Error('invalid'));
+  }),
+}));
 
 /**
- * ApiTokenGuard's own unit tests prove the token check. This proves it is
- * actually registered as a global guard — a wiring mistake there would leave
- * every route open while the unit tests still passed.
- *
- * PrismaService is stubbed so this needs no database; the requests under test
- * are rejected before any handler runs anyway.
+ * Proves ClerkAuthGuard is registered globally. A guard that passes its own
+ * unit tests but isn't wired as APP_GUARD would leave every route open, and
+ * nothing else in the suite would notice.
  */
-describe('ApiTokenGuard wiring', () => {
+describe('ClerkAuthGuard wiring', () => {
   let app: INestApplication<App>;
-  const original = process.env.API_TOKEN;
 
   beforeAll(async () => {
-    process.env.API_TOKEN = 'test-token';
+    process.env.CLERK_SECRET_KEY = 'sk_test_not_a_real_key';
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
       .useValue({
@@ -26,6 +33,8 @@ describe('ApiTokenGuard wiring', () => {
         $disconnect: jest.fn(),
         exercise: { findMany: jest.fn().mockResolvedValue([]) },
       })
+      .overrideProvider(UserProvisioningService)
+      .useValue({ ensure: jest.fn().mockResolvedValue(undefined) })
       .compile();
     app = moduleRef.createNestApplication();
     await app.init();
@@ -33,7 +42,6 @@ describe('ApiTokenGuard wiring', () => {
 
   afterAll(async () => {
     await app.close();
-    process.env.API_TOKEN = original;
   });
 
   it('rejects an unauthenticated read', () => {
@@ -50,17 +58,24 @@ describe('ApiTokenGuard wiring', () => {
       .expect(401);
   });
 
-  it('rejects a wrong token', () => {
+  it('rejects a token it cannot verify', () => {
     return request(app.getHttpServer())
       .get('/exercises')
-      .set('Authorization', 'Bearer wrong-token')
+      .set('Authorization', 'Bearer forged-token')
       .expect(401);
   });
 
-  it('admits a correct token', () => {
+  it('rejects a non-bearer authorization header', () => {
     return request(app.getHttpServer())
       .get('/exercises')
-      .set('Authorization', 'Bearer test-token')
+      .set('Authorization', 'Basic dXNlcjpwYXNz')
+      .expect(401);
+  });
+
+  it('admits a verified session token', () => {
+    return request(app.getHttpServer())
+      .get('/exercises')
+      .set('Authorization', 'Bearer valid-token')
       .expect(200);
   });
 

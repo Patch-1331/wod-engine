@@ -3,14 +3,14 @@ import { AppModule } from './app.module';
 import { NoContentInterceptor } from './common/no-content.interceptor';
 
 async function bootstrap() {
-  // Fail fast rather than start unauthenticated: ApiTokenGuard gates every
-  // non-public route on this value, so an unset one would mean a service that
-  // rejects everything (or, worse if the guard were ever relaxed, serves
-  // everything) with no obvious signal.
-  if (!process.env.API_TOKEN) {
+  // Fail fast rather than start unauthenticated: ClerkAuthGuard verifies every
+  // non-public route against this key, so an unset one would mean a service
+  // that rejects everything with no obvious signal.
+  if (!process.env.CLERK_SECRET_KEY) {
     throw new Error(
-      'API_TOKEN is not set. See apps/api/.env.example — the API refuses to ' +
-        'start without it so it can never serve unauthenticated traffic.',
+      'CLERK_SECRET_KEY is not set. See apps/api/.env.example — the API ' +
+        'refuses to start without it so it can never serve unauthenticated ' +
+        'traffic.',
     );
   }
 

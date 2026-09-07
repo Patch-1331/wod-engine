@@ -26,12 +26,14 @@ export class SchedulerService {
   ) {}
 
   /** Returns today's assignment, generating one if the day hasn't been decided yet. */
-  async getToday(today: string) {
-    const rule = await this.prisma.scheduleRule.findFirst();
+  async getToday(userId: string, today: string) {
+    const rule = await this.prisma.scheduleRule.findUnique({
+      where: { userId },
+    });
     const warmupCooldownEnabled = rule?.warmupCooldownEnabled ?? false;
 
     const existing = await this.prisma.dailyAssignment.findUnique({
-      where: { date: today },
+      where: { userId_date: { userId, date: today } },
       include: { wod: { include: wodInclude }, session: true },
     });
 
@@ -43,7 +45,7 @@ export class SchedulerService {
               id: existing.id,
               date: existing.date,
               status: existing.status,
-              wod: await this.scaleWodToCurrentRung(existing.wod),
+              wod: await this.scaleWodToCurrentRung(userId, existing.wod),
               session: existing.session ? toSessionDto(existing.session) : null,
             };
 
@@ -62,6 +64,7 @@ export class SchedulerService {
     const { start } = getWeekRange(today);
     const assignedThisWeek = await this.prisma.dailyAssignment.count({
       where: {
+        userId,
         date: { gte: start, lt: today },
         status: { in: ['scheduled', 'in_progress', 'completed'] },
       },
@@ -81,14 +84,14 @@ export class SchedulerService {
       };
     }
 
-    const wod = await this.generateWodForDate(today, cooldownDays);
+    const wod = await this.generateWodForDate(userId, today, cooldownDays);
 
     const created = await this.prisma.dailyAssignment.create({
-      data: { date: today, wodId: wod.id, status: 'scheduled' },
+      data: { userId, date: today, wodId: wod.id, status: 'scheduled' },
       include: { wod: { include: wodInclude } },
     });
 
-    const scaledWod = await this.scaleWodToCurrentRung(created.wod!);
+    const scaledWod = await this.scaleWodToCurrentRung(userId, created.wod!);
 
     return {
       date: today,
@@ -130,9 +133,9 @@ export class SchedulerService {
     W extends {
       movements: { exercise: Exercise }[];
     },
-  >(wod: W): Promise<W> {
+  >(userId: string, wod: W): Promise<W> {
     const [skillLevels, linedExercises] = await Promise.all([
-      this.prisma.skillLevel.findMany(),
+      this.prisma.skillLevel.findMany({ where: { userId } }),
       this.prisma.exercise.findMany({ where: { line: { not: null } } }),
     ]);
 
@@ -148,19 +151,23 @@ export class SchedulerService {
   }
 
   /** The scheduler's day-per-week cap, for callers outside the scheduling flow (e.g. the Stats page). */
-  async getScheduleCap(): Promise<{ maxDaysPerWeek: number }> {
-    const rule = await this.prisma.scheduleRule.findFirst();
+  async getScheduleCap(userId: string): Promise<{ maxDaysPerWeek: number }> {
+    const rule = await this.prisma.scheduleRule.findUnique({
+      where: { userId },
+    });
     return { maxDaysPerWeek: rule?.maxDaysPerWeek ?? 5 };
   }
 
   /** Marks today as a rest day — upserts so this works whether or not a WOD was already generated. */
-  async skipToday(today: string) {
+  async skipToday(userId: string, today: string) {
     await this.prisma.dailyAssignment.upsert({
-      where: { date: today },
+      where: { userId_date: { userId, date: today } },
       update: { status: 'skipped' },
-      create: { date: today, status: 'skipped' },
+      create: { userId, date: today, status: 'skipped' },
     });
-    const rule = await this.prisma.scheduleRule.findFirst();
+    const rule = await this.prisma.scheduleRule.findUnique({
+      where: { userId },
+    });
     return {
       date: today,
       isRestDay: true,
@@ -171,13 +178,18 @@ export class SchedulerService {
     };
   }
 
-  private async generateWodForDate(today: string, cooldownDays: number) {
+  private async generateWodForDate(
+    userId: string,
+    today: string,
+    cooldownDays: number,
+  ) {
     const [wods, recentAssignments] = await Promise.all([
       this.prisma.wod.findMany({
         select: { id: true, name: true, type: true, dominantPattern: true },
       }),
       this.prisma.dailyAssignment.findMany({
         where: {
+          userId,
           date: { lt: today },
           status: { in: ['scheduled', 'in_progress', 'completed'] },
         },

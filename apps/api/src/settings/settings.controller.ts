@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { updateSettingsSchema } from '@wod-engine/shared';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { validateBody } from '../common/validate';
 import { SettingsService } from './settings.service';
 
@@ -8,13 +9,13 @@ export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get()
-  get() {
-    return this.settingsService.get();
+  get(@CurrentUser() userId: string) {
+    return this.settingsService.get(userId);
   }
 
   @Patch()
-  update(@Body() body: unknown) {
+  update(@CurrentUser() userId: string, @Body() body: unknown) {
     const { warmupCooldownEnabled } = validateBody(updateSettingsSchema, body);
-    return this.settingsService.update(warmupCooldownEnabled);
+    return this.settingsService.update(userId, warmupCooldownEnabled);
   }
 }

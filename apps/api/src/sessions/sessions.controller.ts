@@ -11,6 +11,7 @@ import {
   logRoundSplitSchema,
   setRoundSplitRequestSchema,
 } from '@wod-engine/shared';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { validateBody } from '../common/validate';
 import { SessionsService } from './sessions.service';
 
@@ -19,48 +20,75 @@ export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
 
   @Get()
-  get(@Param('assignmentId') assignmentId: string) {
-    return this.sessionsService.get(assignmentId);
+  get(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.sessionsService.get(userId, assignmentId);
   }
 
   @Post()
-  start(@Param('assignmentId') assignmentId: string) {
-    return this.sessionsService.start(assignmentId);
+  start(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.sessionsService.start(userId, assignmentId);
   }
 
   @Post('rounds')
-  logRound(@Param('assignmentId') assignmentId: string, @Body() body: unknown) {
+  logRound(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+    @Body() body: unknown,
+  ) {
     const round = validateBody(logRoundSplitSchema, body);
-    return this.sessionsService.logRound(assignmentId, round);
+    return this.sessionsService.logRound(userId, assignmentId, round);
   }
 
   @Post('finish')
-  finish(@Param('assignmentId') assignmentId: string) {
-    return this.sessionsService.finish(assignmentId);
+  finish(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.sessionsService.finish(userId, assignmentId);
   }
 
   @Post('warmup-complete')
-  completeWarmup(@Param('assignmentId') assignmentId: string) {
-    return this.sessionsService.completeWarmup(assignmentId);
+  completeWarmup(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.sessionsService.completeWarmup(userId, assignmentId);
   }
 
   @Post('cooldown-complete')
-  completeCooldown(@Param('assignmentId') assignmentId: string) {
-    return this.sessionsService.completeCooldown(assignmentId);
+  completeCooldown(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.sessionsService.completeCooldown(userId, assignmentId);
   }
 
   @Delete()
   @HttpCode(204)
-  cancel(@Param('assignmentId') assignmentId: string) {
-    return this.sessionsService.cancel(assignmentId);
+  cancel(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.sessionsService.cancel(userId, assignmentId);
   }
 
   @Post('split')
   setRoundSplit(
+    @CurrentUser() userId: string,
     @Param('assignmentId') assignmentId: string,
     @Body() body: unknown,
   ) {
     const { roundSplitCount } = validateBody(setRoundSplitRequestSchema, body);
-    return this.sessionsService.setRoundSplit(assignmentId, roundSplitCount);
+    return this.sessionsService.setRoundSplit(
+      userId,
+      assignmentId,
+      roundSplitCount,
+    );
   }
 }

@@ -17,9 +17,10 @@ export class SessionsService {
    * concurrent calls (e.g. React's dev-mode double effect invocation) would
    * otherwise race and the second lose to a unique-constraint error.
    */
-  async start(assignmentId: string): Promise<WorkoutSession> {
-    const assignment = await this.prisma.dailyAssignment.findUnique({
-      where: { id: assignmentId },
+  async start(userId: string, assignmentId: string): Promise<WorkoutSession> {
+    // Scoped by userId so another user's assignment id reads as not found.
+    const assignment = await this.prisma.dailyAssignment.findFirst({
+      where: { id: assignmentId, userId },
       include: { wod: true },
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
@@ -31,6 +32,7 @@ export class SessionsService {
       update: {},
       create: {
         assignmentId,
+        userId,
         capSeconds: assignment.wod.timeCapMinutes * 60,
         roundSplits: '[]',
         status: 'in_progress',
@@ -47,19 +49,23 @@ export class SessionsService {
     return toSessionDto(session);
   }
 
-  async get(assignmentId: string): Promise<WorkoutSession | null> {
-    const session = await this.prisma.workoutSession.findUnique({
-      where: { assignmentId },
+  async get(
+    userId: string,
+    assignmentId: string,
+  ): Promise<WorkoutSession | null> {
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { assignmentId, userId },
     });
     return session ? toSessionDto(session) : null;
   }
 
   async logRound(
+    userId: string,
     assignmentId: string,
     round: RoundSplit,
   ): Promise<WorkoutSession> {
-    const session = await this.prisma.workoutSession.findUnique({
-      where: { assignmentId },
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { assignmentId, userId },
     });
     if (!session)
       throw new NotFoundException('No active session for this assignment');
@@ -79,11 +85,12 @@ export class SessionsService {
   }
 
   async setRoundSplit(
+    userId: string,
     assignmentId: string,
     roundSplitCount: number | null,
   ): Promise<WorkoutSession> {
-    const session = await this.prisma.workoutSession.findUnique({
-      where: { assignmentId },
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { assignmentId, userId },
     });
     if (!session)
       throw new NotFoundException('No active session for this assignment');
@@ -96,9 +103,9 @@ export class SessionsService {
     return toSessionDto(updated);
   }
 
-  async finish(assignmentId: string): Promise<WorkoutSession> {
-    const session = await this.prisma.workoutSession.findUnique({
-      where: { assignmentId },
+  async finish(userId: string, assignmentId: string): Promise<WorkoutSession> {
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { assignmentId, userId },
     });
     if (!session)
       throw new NotFoundException('No active session for this assignment');
@@ -121,9 +128,12 @@ export class SessionsService {
    * explicit skip leaves it null; the timestamp specifically means "the
    * warm-up was actually done," not just "the screen was passed through."
    */
-  async completeWarmup(assignmentId: string): Promise<WorkoutSession> {
-    const session = await this.prisma.workoutSession.findUnique({
-      where: { assignmentId },
+  async completeWarmup(
+    userId: string,
+    assignmentId: string,
+  ): Promise<WorkoutSession> {
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { assignmentId, userId },
     });
     if (!session)
       throw new NotFoundException('No active session for this assignment');
@@ -137,9 +147,12 @@ export class SessionsService {
   }
 
   /** Same contract as completeWarmup, for the cool-down checklist (Feature #63). */
-  async completeCooldown(assignmentId: string): Promise<WorkoutSession> {
-    const session = await this.prisma.workoutSession.findUnique({
-      where: { assignmentId },
+  async completeCooldown(
+    userId: string,
+    assignmentId: string,
+  ): Promise<WorkoutSession> {
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { assignmentId, userId },
     });
     if (!session)
       throw new NotFoundException('No active session for this assignment');
@@ -152,9 +165,9 @@ export class SessionsService {
     return toSessionDto(updated);
   }
 
-  async cancel(assignmentId: string): Promise<void> {
-    const session = await this.prisma.workoutSession.findUnique({
-      where: { assignmentId },
+  async cancel(userId: string, assignmentId: string): Promise<void> {
+    const session = await this.prisma.workoutSession.findFirst({
+      where: { assignmentId, userId },
     });
     if (!session)
       throw new NotFoundException('No active session for this assignment');

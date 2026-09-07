@@ -20,17 +20,19 @@ export const wodMovementSchema = z.object({
 });
 export type WodMovement = z.infer<typeof wodMovementSchema>;
 
-/**
- * EMOM's per-minute interval structure is deferred to the Phase 2
- * interval-timer work — `rounds` and `movements` are enough to describe
- * AMRAP / For Time / Tabata today.
- */
 export const wodSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: wodType,
   timeCapMinutes: z.number().int().positive(),
   rounds: z.number().int().positive().nullable(),
+  // Interval structure for the emom/tabata timer (Feature #30) — null on
+  // AMRAP/For Time, and on interval WODs seeded before the fields existed.
+  // Read these through `resolveIntervalConfig`, which fills the format's
+  // classic structure in for the nulls.
+  workSeconds: z.number().int().positive().nullable(),
+  restSeconds: z.number().int().nonnegative().nullable(),
+  intervalCount: z.number().int().positive().nullable(),
   isNamed: z.boolean(),
   dominantPattern: movementPattern,
   movements: z.array(wodMovementSchema),

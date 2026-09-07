@@ -8,6 +8,7 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  advanceIntervalSchema,
   logRoundSplitSchema,
   setRoundSplitRequestSchema,
 } from '@wod-engine/shared';
@@ -43,6 +44,16 @@ export class SessionsController {
   ) {
     const round = validateBody(logRoundSplitSchema, body);
     return this.sessionsService.logRound(userId, assignmentId, round);
+  }
+
+  @Post('interval')
+  advanceInterval(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+    @Body() body: unknown,
+  ) {
+    const next = validateBody(advanceIntervalSchema, body);
+    return this.sessionsService.advanceInterval(userId, assignmentId, next);
   }
 
   @Post('finish')

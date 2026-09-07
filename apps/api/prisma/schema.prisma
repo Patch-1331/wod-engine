@@ -7,10 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// v1 stub: one implicit row, unused by the UI. Exists so v2 multi-user/auth
-// is additive rather than a migration.
+// Mirrors the Clerk user. `id` is Clerk's own user id (e.g. "user_2ab..."),
+// not a locally generated one, so there is a single source of truth for
+// identity and no mapping table. Rows are created lazily on a user's first
+// authenticated request; Clerk remains authoritative for everything else.
 model User {
-  id String @id @default(cuid())
+  id String @id
+
+  assignments  DailyAssignment[]
+  sessions     WorkoutSession[]
+  logs         WorkoutLog[]
+  skillLevels  SkillLevel[]
+  scheduleRule ScheduleRule?
 }
 
 model Exercise {
@@ -48,7 +56,9 @@ model Exercise {
 // by the 3x8-to-3x5 rule after a result is logged (Feature #2).
 model SkillLevel {
   id         String   @id @default(cuid())
-  line       String   @unique // push_horizontal | push_vertical | pull | squat | hinge | core_dynamic | core_hold | core_side
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  line       String // push_horizontal | push_vertical | pull | squat | hinge | core_dynamic | core_hold | core_side
   rung       Int      @default(0)
   updatedAt  DateTime @updatedAt
   // Set by the automatic advancement rule (#7) so the Stats "level up"
@@ -56,6 +66,8 @@ model SkillLevel {
   // Null until the first automatic change; a manual override (#8) clears
   // it back to null since that's a correction, not an achievement.
   lastChange String? // advanced | dropped
+
+  @@unique([userId, line])
 }
 
 model Wod {
@@ -81,9 +93,11 @@ model WodMovement {
   order      Int
 }
 
-// One active row read by the scheduler.
+// One active row per user, read by the scheduler.
 model ScheduleRule {
   id                    String  @id @default(cuid())
+  userId                String  @unique
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   maxDaysPerWeek        Int     @default(5)
   patternCooldownDays   Int     @default(5)
   warmupCooldownEnabled Boolean @default(false) // Feature #63 opt-in
@@ -91,7 +105,9 @@ model ScheduleRule {
 
 model DailyAssignment {
   id     String  @id @default(cuid())
-  date   String // ISO date, one assignment per day
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   String // ISO date, one assignment per day per user
   wodId  String? // null for a rest day recorded before any WOD was generated
   wod    Wod?    @relation(fields: [wodId], references: [id])
   status String  @default("scheduled") // scheduled | in_progress | completed | skipped
@@ -99,7 +115,11 @@ model DailyAssignment {
   session WorkoutSession?
   log     WorkoutLog?
 
-  @@unique([date])
+  @@unique([userId, date])
+  // Not redundant with the id primary key: it is the target of the composite
+  // foreign keys on WorkoutSession and WorkoutLog, which is what stops a row
+  // claiming an owner different from its assignment's. Don't remove it.
+  @@unique([id, userId])
 }
 
 // The live timer's state. roundSplits is JSON: [{ round, atSeconds }],
@@ -107,8 +127,14 @@ model DailyAssignment {
 // never loses progress.
 model WorkoutSession {
   id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignmentId      String          @unique
-  assignment        DailyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  // Composite FK: userId is denormalised so every per-user model scopes the
+  // same way, and referencing (id, userId) makes Postgres reject a session
+  // whose owner disagrees with its assignment's. The drift is unrepresentable
+  // rather than merely avoided by careful writes.
+  assignment        DailyAssignment @relation(fields: [assignmentId, userId], references: [id, userId], onDelete: Cascade)
   startedAt         DateTime        @default(now())
   capSeconds        Int
   roundSplits       String          @default("[]") // JSON-encoded RoundSplit[]
@@ -119,15 +145,25 @@ model WorkoutSession {
   // Feature #63 — stamped when each checklist is finished; read later for stats.
   warmupCompletedAt   DateTime?
   cooldownCompletedAt DateTime?
+
+  // Required by Prisma for the composite relation above. assignmentId is
+  // already unique on its own, so this adds no further restriction.
+  @@unique([assignmentId, userId])
 }
 
 model WorkoutLog {
   id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignmentId String          @unique
-  assignment   DailyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  // See WorkoutSession: same composite FK, same reason.
+  assignment   DailyAssignment @relation(fields: [assignmentId, userId], references: [id, userId], onDelete: Cascade)
   resultType   String // time_seconds | rounds_reps | total_reps
   resultValue  String // e.g. "1122" (seconds), "17+3" (rounds+reps), "220" (total reps)
   rpe          Int?
   notes        String?
   createdAt    DateTime        @default(now())
+
+  // See WorkoutSession: required by Prisma for the composite relation.
+  @@unique([assignmentId, userId])
 }

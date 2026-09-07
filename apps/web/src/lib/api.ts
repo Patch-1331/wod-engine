@@ -15,15 +15,20 @@ import type {
 
 const API_BASE = "/api";
 
-// The API gates every route on this shared secret. Note that anything Vite
-// inlines at build time is readable in the shipped bundle, so this protects
-// the API from unauthenticated callers, NOT from anyone who can already load
-// this page — a public frontend needs real per-user auth instead.
-const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
+// Set once by ApiAuthBridge, which has access to Clerk's hooks. Calling this
+// per request (rather than caching a token here) lets Clerk hand back a fresh
+// one as the short-lived session token rotates.
+type TokenGetter = () => Promise<string | null>;
+let getToken: TokenGetter = () => Promise.resolve(null);
+
+export function setTokenGetter(fn: TokenGetter): void {
+  getToken = fn;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
-  if (API_TOKEN) headers.set("X-API-Token", API_TOKEN);
+  const token = await getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText} for ${path}`);
@@ -46,7 +51,8 @@ async function requestOptional<T>(path: string): Promise<T | null> {
 function postJson<T>(path: string, body?: unknown) {
   return request<T>(path, {
     method: "POST",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers:
+      body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
@@ -82,21 +88,32 @@ export const api = {
   getSession: (assignmentId: string) =>
     requestOptional<WorkoutSession>(`/assignments/${assignmentId}/session`),
   logRound: (assignmentId: string, round: RoundSplit) =>
-    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/rounds`, round),
+    postJson<WorkoutSession>(
+      `/assignments/${assignmentId}/session/rounds`,
+      round,
+    ),
   finishSession: (assignmentId: string) =>
     postJson<WorkoutSession>(`/assignments/${assignmentId}/session/finish`),
   completeWarmup: (assignmentId: string) =>
-    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/warmup-complete`),
+    postJson<WorkoutSession>(
+      `/assignments/${assignmentId}/session/warmup-complete`,
+    ),
   completeCooldown: (assignmentId: string) =>
-    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/cooldown-complete`),
+    postJson<WorkoutSession>(
+      `/assignments/${assignmentId}/session/cooldown-complete`,
+    ),
   cancelSession: (assignmentId: string) =>
     request<void>(`/assignments/${assignmentId}/session`, { method: "DELETE" }),
   setRoundSplit: (assignmentId: string, body: SetRoundSplitRequest) =>
-    postJson<WorkoutSession>(`/assignments/${assignmentId}/session/split`, body),
+    postJson<WorkoutSession>(
+      `/assignments/${assignmentId}/session/split`,
+      body,
+    ),
 
   saveLog: (assignmentId: string, body: LogResultRequest) =>
     postJson<WorkoutLog>(`/assignments/${assignmentId}/log`, body),
-  getLog: (assignmentId: string) => requestOptional<WorkoutLog>(`/assignments/${assignmentId}/log`),
+  getLog: (assignmentId: string) =>
+    requestOptional<WorkoutLog>(`/assignments/${assignmentId}/log`),
   logs: () => request<WorkoutLogListItem[]>("/logs"),
 
   skillLevels: () => request<SkillLevel[]>("/skill-levels"),
@@ -104,5 +121,6 @@ export const api = {
     patchJson<SkillLevel>(`/skill-levels/${line}`, body),
 
   settings: () => request<Settings>("/settings"),
-  updateSettings: (body: UpdateSettings) => patchJson<Settings>("/settings", body),
+  updateSettings: (body: UpdateSettings) =>
+    patchJson<Settings>("/settings", body),
 };

@@ -1,9 +1,21 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ClerkProvider } from "@clerk/clerk-react";
+import "./index.css";
+import App from "./App.tsx";
+import { ApiAuthBridge } from "./ApiAuthBridge";
+
+const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
+  string | undefined;
+if (!publishableKey) {
+  // Failing loudly beats a blank screen and a console warning: without this
+  // key Clerk renders nothing and every API call would 401.
+  throw new Error(
+    "VITE_CLERK_PUBLISHABLE_KEY is not set — see apps/web/.env.example",
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,14 +28,18 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
-})
+});
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ClerkProvider publishableKey={publishableKey}>
+      <ApiAuthBridge>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ApiAuthBridge>
+    </ClerkProvider>
   </StrictMode>,
-)
+);

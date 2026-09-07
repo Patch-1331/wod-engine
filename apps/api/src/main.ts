@@ -17,7 +17,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // Comma-separated allowlist. Defaults to the Vite dev server; set
   // WEB_ORIGIN to the deployed web origin once the frontend ships.
-  const origins = (process.env.WEB_ORIGIN ?? 'http://localhost:5173')
+  // `||` not `??`: Render stores an unfilled sync:false variable as an empty
+  // string, and that should fall back to the default rather than becoming an
+  // empty allowlist that rejects every origin.
+  const origins = (process.env.WEB_ORIGIN || 'http://localhost:5173')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);

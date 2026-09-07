@@ -1,4 +1,5 @@
 import { Controller, Get, Post } from '@nestjs/common';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { SchedulerService } from './scheduler.service';
 
 /**
@@ -19,17 +20,17 @@ export class SchedulerController {
   constructor(private readonly schedulerService: SchedulerService) {}
 
   @Get('today')
-  getToday() {
-    return this.schedulerService.getToday(todayIsoDate());
+  getToday(@CurrentUser() userId: string) {
+    return this.schedulerService.getToday(userId, todayIsoDate());
   }
 
   @Post('today/skip')
-  skipToday() {
-    return this.schedulerService.skipToday(todayIsoDate());
+  skipToday(@CurrentUser() userId: string) {
+    return this.schedulerService.skipToday(userId, todayIsoDate());
   }
 
   @Get('schedule-rule')
-  getScheduleRule() {
-    return this.schedulerService.getScheduleCap();
+  getScheduleRule(@CurrentUser() userId: string) {
+    return this.schedulerService.getScheduleCap(userId);
   }
 }

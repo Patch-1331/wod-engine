@@ -22,11 +22,14 @@ export class LogsService {
    * since re-running against a rung that already moved would double-advance.
    */
   async upsert(
+    userId: string,
     assignmentId: string,
     body: LogResultRequest,
   ): Promise<WorkoutLog> {
-    const assignment = await this.prisma.dailyAssignment.findUnique({
-      where: { id: assignmentId },
+    // findFirst with userId, not findUnique on id alone: another user's
+    // assignment id must read as "not found" rather than as someone else's row.
+    const assignment = await this.prisma.dailyAssignment.findFirst({
+      where: { id: assignmentId, userId },
       include: {
         wod: { include: { movements: { include: { exercise: true } } } },
         session: true,
@@ -37,8 +40,9 @@ export class LogsService {
       throw new BadRequestException('Rest days have nothing to log');
 
     const isFirstLog =
-      (await this.prisma.workoutLog.findUnique({ where: { assignmentId } })) ===
-      null;
+      (await this.prisma.workoutLog.findFirst({
+        where: { assignmentId, userId },
+      })) === null;
 
     const data = {
       resultType: body.resultType,
@@ -50,7 +54,7 @@ export class LogsService {
     const log = await this.prisma.workoutLog.upsert({
       where: { assignmentId },
       update: data,
-      create: { assignmentId, ...data },
+      create: { assignmentId, userId, ...data },
     });
 
     await this.prisma.dailyAssignment.update({
@@ -59,7 +63,11 @@ export class LogsService {
     });
 
     if (isFirstLog && assignment.session) {
-      await this.applyAdvancement(assignment.wod.movements, assignment.session);
+      await this.applyAdvancement(
+        userId,
+        assignment.wod.movements,
+        assignment.session,
+      );
     }
 
     return toLogDto(log);
@@ -67,6 +75,7 @@ export class LogsService {
 
   /** Advances or drops progression lines (Feature #2) per the 3x8-to-3x5 rule. */
   private async applyAdvancement(
+    userId: string,
     movements: {
       reps: number;
       exercise: { line: string | null; unit: string };
@@ -77,7 +86,7 @@ export class LogsService {
       .length;
 
     const [skillLevels, linedExercises] = await Promise.all([
-      this.prisma.skillLevel.findMany(),
+      this.prisma.skillLevel.findMany({ where: { userId } }),
       this.prisma.exercise.findMany({ where: { line: { not: null } } }),
     ]);
 
@@ -102,7 +111,7 @@ export class LogsService {
     await Promise.all(
       changes.map((c) =>
         this.prisma.skillLevel.update({
-          where: { line: c.line },
+          where: { userId_line: { userId, line: c.line } },
           data: {
             rung: c.to,
             lastChange: c.to > c.from ? 'advanced' : 'dropped',
@@ -112,15 +121,19 @@ export class LogsService {
     );
   }
 
-  async getForAssignment(assignmentId: string): Promise<WorkoutLog | null> {
-    const log = await this.prisma.workoutLog.findUnique({
-      where: { assignmentId },
+  async getForAssignment(
+    userId: string,
+    assignmentId: string,
+  ): Promise<WorkoutLog | null> {
+    const log = await this.prisma.workoutLog.findFirst({
+      where: { assignmentId, userId },
     });
     return log ? toLogDto(log) : null;
   }
 
-  async list(): Promise<WorkoutLogListItem[]> {
+  async list(userId: string): Promise<WorkoutLogListItem[]> {
     const logs = await this.prisma.workoutLog.findMany({
+      where: { userId },
       include: { assignment: { include: { wod: true } } },
       orderBy: { assignment: { date: 'desc' } },
     });

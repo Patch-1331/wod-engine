@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { progressionLine } from "@wod-engine/shared";
 
 const prisma = new PrismaClient();
 
@@ -341,24 +340,11 @@ async function main() {
     });
   }
 
-  console.log("Seeding schedule rule...");
-  const rule = await prisma.scheduleRule.findFirst();
-  if (!rule) {
-    await prisma.scheduleRule.create({
-      data: { maxDaysPerWeek: 5, patternCooldownDays: 5 },
-    });
-  }
-
-  console.log("Seeding skill levels...");
-  for (const line of progressionLine.options) {
-    // Upsert with a no-op update so re-seeding never resets real progress.
-    await prisma.skillLevel.upsert({
-      where: { line },
-      update: {},
-      create: { line, rung: 0 },
-    });
-  }
-
+  // ScheduleRule and SkillLevel rows used to be seeded here, when they were
+  // global singletons. They are per-user now, so UserProvisioningService
+  // creates them on a user's first authenticated request instead — this seed
+  // runs at deploy time, when no user exists yet. Only the shared catalogue
+  // (exercises and WODs) belongs here.
   console.log(`Done: ${exercises.length} exercises, ${wods.length} WODs.`);
 }
 

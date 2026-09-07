@@ -10,8 +10,9 @@ import { PrismaService } from '../prisma/prisma.service';
 export class SkillLevelsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<SkillLevel[]> {
+  async findAll(userId: string): Promise<SkillLevel[]> {
     const rows = await this.prisma.skillLevel.findMany({
+      where: { userId },
       orderBy: { line: 'asc' },
     });
     return rows.map(toDto);
@@ -23,9 +24,13 @@ export class SkillLevelsService {
    * seeded for this line, same ceiling the automatic rule respects, so the
    * scheduler substitution (#6) never has to fall back on a missing rung.
    */
-  async setRung(line: string, rung: number): Promise<SkillLevel> {
+  async setRung(
+    userId: string,
+    line: string,
+    rung: number,
+  ): Promise<SkillLevel> {
     const existing = await this.prisma.skillLevel.findUnique({
-      where: { line },
+      where: { userId_line: { userId, line } },
     });
     if (!existing)
       throw new NotFoundException(`No skill level tracked for line "${line}"`);
@@ -44,7 +49,7 @@ export class SkillLevelsService {
     // Clears lastChange — a manual correction isn't the automatic rule's
     // achievement to celebrate on the Stats "level up" banner (#10).
     const updated = await this.prisma.skillLevel.update({
-      where: { line },
+      where: { userId_line: { userId, line } },
       data: { rung, lastChange: null },
     });
     return toDto(updated);

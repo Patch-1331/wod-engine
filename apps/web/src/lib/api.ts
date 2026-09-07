@@ -15,8 +15,16 @@ import type {
 
 const API_BASE = "/api";
 
+// The API gates every route on this shared secret. Note that anything Vite
+// inlines at build time is readable in the shipped bundle, so this protects
+// the API from unauthenticated callers, NOT from anyone who can already load
+// this page — a public frontend needs real per-user auth instead.
+const API_TOKEN = import.meta.env.VITE_API_TOKEN as string | undefined;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, init);
+  const headers = new Headers(init?.headers);
+  if (API_TOKEN) headers.set("X-API-Token", API_TOKEN);
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText} for ${path}`);
   }

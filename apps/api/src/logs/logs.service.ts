@@ -78,6 +78,7 @@ export class LogsService {
     userId: string,
     movements: {
       reps: number;
+      repScheme: number[];
       exercise: { line: string | null; unit: string };
     }[],
     session: { roundSplits: string; roundSplitCount: number | null },

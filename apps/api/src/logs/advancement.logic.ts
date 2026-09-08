@@ -9,6 +9,8 @@
  * equivalent of 3x5 drops it back one. In between, the line holds.
  */
 
+import { totalRepsForMovement } from '@wod-engine/shared';
+
 const ADVANCE_THRESHOLD = 24; // 3 sets of 8
 const HOLD_FLOOR = 15; // 3 sets of 5 — below this, drop back a rung
 
@@ -20,6 +22,7 @@ const HOLD_FLOOR_SECONDS = 56; // 3 sets of ~19s (same 8:5 ratio as reps)
 
 export type MovementForAdvancement = {
   reps: number;
+  repScheme: number[];
   exercise: { line: string | null; unit?: string };
 };
 
@@ -28,36 +31,6 @@ export type LineRungChange = {
   from: number;
   to: number;
 };
-
-/**
- * Mirrors apps/web/src/lib/roundSplit.ts's computeRoundReps so a split
- * session (roundSplitCount set) is counted the same way the UI displayed
- * it — front-loading the remainder — rather than the movement's full
- * per-round rep count times however many split-taps happened.
- */
-function computeRoundReps(total: number, rounds: number): number[] {
-  if (rounds <= 1) return [total];
-  const base = Math.floor(total / rounds);
-  const remainder = total % rounds;
-  return Array.from(
-    { length: rounds },
-    (_, i) => base + (i < remainder ? 1 : 0),
-  );
-}
-
-/** Total reps actually performed for one movement, given how many round-taps were logged. */
-export function totalRepsForMovement(
-  movement: { reps: number },
-  completedRounds: number,
-  roundSplitCount: number | null,
-): number {
-  if (!roundSplitCount || roundSplitCount <= 1) {
-    return completedRounds * movement.reps;
-  }
-  const perRound = computeRoundReps(movement.reps, roundSplitCount);
-  const taps = Math.min(completedRounds, perRound.length);
-  return perRound.slice(0, taps).reduce((sum, r) => sum + r, 0);
-}
 
 /**
  * One movement moves its own line at most one rung per log — no

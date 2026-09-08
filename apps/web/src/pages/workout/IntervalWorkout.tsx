@@ -147,6 +147,11 @@ export function IntervalWorkout({
           {wod.name.toUpperCase()} · {wod.type.toUpperCase()} {config.workSeconds}
           {config.restSeconds > 0 ? `/${config.restSeconds}` : ""} · CUES ON
         </div>
+        {wod.description && (
+          <p className="mx-auto mt-1 max-w-[85vw] text-[11px] leading-snug" style={{ color: "var(--ink-soft)" }}>
+            {wod.description}
+          </p>
+        )}
         <div className="mt-1 text-[11px]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
           ELAPSED {formatClock(elapsedSeconds)} · CAP {formatClock(session.capSeconds)}
         </div>

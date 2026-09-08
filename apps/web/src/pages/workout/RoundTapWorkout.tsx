@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Wod, WorkoutSession } from "@wod-engine/shared";
+import {
+  anchorMovement,
+  effectiveRounds,
+  hasRepScheme,
+  repsForRound,
+  roundsFromReps,
+  type Wod,
+  type WorkoutSession,
+} from "@wod-engine/shared";
 import { api } from "../../lib/api";
 import { formatClock } from "../../lib/clock";
 import { roundCompleteCue, capReachedCue } from "../../lib/cues";
-import { anchorMovement, computeRoundReps, roundsFromReps } from "../../lib/roundSplit";
 import { MinusIcon, PlusIcon } from "../../components/StepperIcons";
 import { useNow } from "./useWorkoutSession";
 import { WorkoutChrome } from "./WorkoutChrome";
@@ -67,12 +74,16 @@ export function RoundTapWorkout({
   const currentRound = session.roundSplits.length + 1;
 
   const anchor = anchorMovement(wod.movements);
-  const roundSplitCount = session.roundSplitCount;
-  const splitRoundIndex = roundSplitCount ? Math.min(currentRound - 1, roundSplitCount - 1) : 0;
+  // A rep scheme is the workout's own structure, so it outranks a manual
+  // split — and leaves the SPLIT control nothing to do. `roundSplitCount` may
+  // still be set on a session that started before the WOD gained its scheme;
+  // ignoring it here is what makes the scheme win rather than a migration.
+  const isSchemeDriven = hasRepScheme(wod.movements);
+  const roundSplitCount = isSchemeDriven ? null : session.roundSplitCount;
+  const totalRounds = effectiveRounds(wod);
 
   function repsForMovement(m: (typeof wod.movements)[number]) {
-    if (!roundSplitCount) return m.reps;
-    return computeRoundReps(m.reps, roundSplitCount)[splitRoundIndex];
+    return repsForRound(m, currentRound - 1, roundSplitCount);
   }
 
   function handleRoundComplete() {
@@ -88,6 +99,11 @@ export function RoundTapWorkout({
         <div className="text-xs font-semibold tracking-[0.14em]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
           {wod.name.toUpperCase()} · {wod.type.toUpperCase()} {wod.timeCapMinutes} · CUES ON
         </div>
+        {wod.description && (
+          <p className="mx-auto mt-1 max-w-[85vw] text-[11px] leading-snug" style={{ color: "var(--ink-soft)" }}>
+            {wod.description}
+          </p>
+        )}
         <div
           className="mt-1.5 text-6xl font-bold"
           style={{
@@ -116,8 +132,8 @@ export function RoundTapWorkout({
           style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--glow)", textShadow: "0 0 16px var(--glow-tint), 0 0 3px var(--glow)" }}
         >
           {currentRound}
-          {wod.rounds ? (
-            <span className="text-4xl" style={{ color: "var(--ink-faint)", textShadow: "none" }}> / {wod.rounds}</span>
+          {totalRounds ? (
+            <span className="text-4xl" style={{ color: "var(--ink-faint)", textShadow: "none" }}> / {totalRounds}</span>
           ) : null}
         </div>
       </div>
@@ -127,20 +143,31 @@ export function RoundTapWorkout({
           <div className="text-[11px] font-semibold tracking-[0.14em]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
             MOVEMENTS
           </div>
-          <button
-            onClick={() => {
-              setSplitInput(roundSplitCount ?? 5);
-              setSplitMode("rounds");
-              setSplitPanelOpen((v) => !v);
-            }}
-            className="text-[11px] font-semibold tracking-[0.14em]"
-            style={{ color: roundSplitCount ? "var(--glow)" : "var(--ink-faint)", fontFamily: "var(--font-mono)" }}
-          >
-            {roundSplitCount ? `SPLIT ${roundSplitCount}×` : "SPLIT"}
-          </button>
+          {isSchemeDriven ? (
+            // Not a disabled button: the scheme already prescribes the rounds,
+            // so there's no split to offer — just the shape of the ladder.
+            <span
+              className="text-[11px] font-semibold tracking-[0.14em]"
+              style={{ color: "var(--glow)", fontFamily: "var(--font-mono)" }}
+            >
+              {schemeLabel(wod.movements)}
+            </span>
+          ) : (
+            <button
+              onClick={() => {
+                setSplitInput(roundSplitCount ?? 5);
+                setSplitMode("rounds");
+                setSplitPanelOpen((v) => !v);
+              }}
+              className="text-[11px] font-semibold tracking-[0.14em]"
+              style={{ color: roundSplitCount ? "var(--glow)" : "var(--ink-faint)", fontFamily: "var(--font-mono)" }}
+            >
+              {roundSplitCount ? `SPLIT ${roundSplitCount}×` : "SPLIT"}
+            </button>
+          )}
         </div>
 
-        {splitPanelOpen && (
+        {splitPanelOpen && !isSchemeDriven && (
           <div className="mt-2 p-3" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
             <div className="flex gap-2">
               <button
@@ -278,4 +305,10 @@ export function RoundTapWorkout({
       </div>
     </div>
   );
+}
+
+/** "21-15-9" — the ladder's shape, shown where the SPLIT control would be. */
+function schemeLabel(movements: { repScheme: number[] }[]): string {
+  const scheme = movements.find((m) => m.repScheme.length > 0);
+  return scheme ? scheme.repScheme.join("-") : "";
 }

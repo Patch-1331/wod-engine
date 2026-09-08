@@ -104,6 +104,17 @@ const exercises: ExerciseSeed[] = [
   { name: "Deep breathing", pattern: null, phase: "cooldown" },
 ];
 
+type WodMovementSeed = {
+  exercise: string;
+  // Flat count, performed every round. Omitted when repScheme carries the
+  // counts instead — exactly one of the two is given.
+  reps?: number;
+  // A ladder's per-round counts, e.g. [21, 15, 9] for a 21-15-9. The stored
+  // `reps` is derived as the sum rather than written out again, so the seed
+  // has no way to state a total that disagrees with the scheme.
+  repScheme?: number[];
+};
+
 type WodSeed = {
   name: string;
   type: "amrap" | "for_time" | "emom" | "tabata";
@@ -116,8 +127,47 @@ type WodSeed = {
   intervalCount?: number;
   isNamed: boolean;
   dominantPattern: string;
-  movements: { exercise: string; reps: number }[];
+  // How the workout is meant to be performed, where the movement list alone
+  // leaves it ambiguous — "one pass" vs. "as many rounds as possible".
+  description?: string;
+  movements: WodMovementSeed[];
 };
+
+/**
+ * Resolves a seeded movement to the pair actually stored, and refuses
+ * anything self-contradictory. The DB has a CHECK constraint saying the same
+ * thing; this just fails at the line of seed data that's wrong rather than at
+ * the insert.
+ */
+function movementCounts(
+  m: WodMovementSeed,
+  wodName: string,
+): { reps: number; repScheme: number[] } {
+  const repScheme = m.repScheme ?? [];
+  if (repScheme.length > 0) {
+    const total = repScheme.reduce((sum, r) => sum + r, 0);
+    if (m.reps !== undefined && m.reps !== total) {
+      throw new Error(
+        `"${wodName}" / ${m.exercise}: reps ${m.reps} doesn't match repScheme total ${total}`,
+      );
+    }
+    return { reps: total, repScheme };
+  }
+  if (m.reps === undefined) {
+    throw new Error(`"${wodName}" / ${m.exercise}: needs reps or repScheme`);
+  }
+  return { reps: m.reps, repScheme: [] };
+}
+
+/** A ladder is one shape for the whole WOD, so every scheme in it is the same length. */
+function assertUniformSchemes(w: WodSeed): void {
+  const lengths = w.movements
+    .map((m) => m.repScheme?.length ?? 0)
+    .filter((n) => n > 0);
+  if (new Set(lengths).size > 1) {
+    throw new Error(`"${w.name}": repSchemes of differing lengths`);
+  }
+}
 
 const wods: WodSeed[] = [
   {
@@ -140,6 +190,8 @@ const wods: WodSeed[] = [
     rounds: 1,
     isNamed: true,
     dominantPattern: "pull",
+    description:
+      "All 75 reps of one movement before starting the next, in the order listed. One pass, for time.",
     movements: [
       { exercise: "Pull-up", reps: 75 },
       { exercise: "Push-up", reps: 75 },
@@ -154,6 +206,8 @@ const wods: WodSeed[] = [
     rounds: 1,
     isNamed: true,
     dominantPattern: "pull",
+    description:
+      "Half a Murph, no vest, no run. All 50 pull-ups, then all 100 push-ups, then all 150 air squats. Partition them however you like inside the cap.",
     movements: [
       { exercise: "Pull-up", reps: 50 },
       { exercise: "Push-up", reps: 100 },
@@ -167,9 +221,11 @@ const wods: WodSeed[] = [
     rounds: null,
     isNamed: false,
     dominantPattern: "pull",
+    description:
+      "A descending ladder: 10 pull-ups and 10 burpees, then 9 and 9, all the way down to 1 and 1. One pass, for time.",
     movements: [
-      { exercise: "Pull-up", reps: 55 }, // 10+9+...+1
-      { exercise: "Burpee", reps: 55 },
+      { exercise: "Pull-up", repScheme: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1] },
+      { exercise: "Burpee", repScheme: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1] },
     ],
   },
   {
@@ -179,9 +235,11 @@ const wods: WodSeed[] = [
     rounds: null,
     isNamed: false,
     dominantPattern: "push",
+    description:
+      "21-15-9: 21 push-ups and 21 jump squats, then 15 and 15, then 9 and 9. One pass through the ladder, for time — not as many rounds as possible.",
     movements: [
-      { exercise: "Push-up", reps: 45 }, // 21+15+9
-      { exercise: "Jump squat", reps: 45 },
+      { exercise: "Push-up", repScheme: [21, 15, 9] },
+      { exercise: "Jump squat", repScheme: [21, 15, 9] },
     ],
   },
   {
@@ -317,6 +375,13 @@ async function main() {
 
   console.log("Seeding WOD library...");
   for (const w of wods) {
+    assertUniformSchemes(w);
+    const movements = w.movements.map((m, i) => ({
+      ...movementCounts(m, w.name),
+      order: i,
+      exercise: { connect: { id: idByName.get(m.exercise)! } },
+    }));
+
     const existing = await prisma.wod.findUnique({ where: { name: w.name } });
     if (existing) {
       await prisma.wodMovement.deleteMany({ where: { wodId: existing.id } });
@@ -333,13 +398,8 @@ async function main() {
         intervalCount: w.intervalCount ?? null,
         isNamed: w.isNamed,
         dominantPattern: w.dominantPattern,
-        movements: {
-          create: w.movements.map((m, i) => ({
-            reps: m.reps,
-            order: i,
-            exercise: { connect: { id: idByName.get(m.exercise)! } },
-          })),
-        },
+        description: w.description ?? null,
+        movements: { create: movements },
       },
       create: {
         name: w.name,
@@ -351,13 +411,8 @@ async function main() {
         intervalCount: w.intervalCount ?? null,
         isNamed: w.isNamed,
         dominantPattern: w.dominantPattern,
-        movements: {
-          create: w.movements.map((m, i) => ({
-            reps: m.reps,
-            order: i,
-            exercise: { connect: { id: idByName.get(m.exercise)! } },
-          })),
-        },
+        description: w.description ?? null,
+        movements: { create: movements },
       },
     });
   }

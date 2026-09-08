@@ -9,7 +9,7 @@ import type {
   WodType,
   WorkoutSession,
 } from '@wod-engine/shared';
-import { resolveIntervalConfig } from '@wod-engine/shared';
+import { hasRepScheme, resolveIntervalConfig } from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseSplits, toSessionDto } from './session.mapper';
 import { advanceInterval, mergeRoundSplit } from './session.logic';
@@ -146,9 +146,25 @@ export class SessionsService {
   ): Promise<WorkoutSession> {
     const session = await this.prisma.workoutSession.findFirst({
       where: { assignmentId, userId },
+      include: {
+        assignment: {
+          include: { wod: { include: { movements: true } } },
+        },
+      },
     });
     if (!session)
       throw new NotFoundException('No active session for this assignment');
+
+    // A rep scheme already prescribes the rounds, so there is nothing left to
+    // split — and an even split over a ladder's total would walk the athlete
+    // through 15-15-15 where the workout says 21-15-9. The client hides the
+    // control, but this endpoint is reachable without it.
+    const movements = session.assignment.wod?.movements ?? [];
+    if (roundSplitCount !== null && hasRepScheme(movements)) {
+      throw new BadRequestException(
+        "This workout's rep scheme sets its rounds — it can't be split",
+      );
+    }
 
     const updated = await this.prisma.workoutSession.update({
       where: { assignmentId },

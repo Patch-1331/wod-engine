@@ -76,6 +76,12 @@ model Wod {
   type            String // amrap | for_time | emom | tabata
   timeCapMinutes  Int
   rounds          Int?
+  // How the workout is meant to be performed, in prose — the part no other
+  // field can carry ("one pass, for time" vs. "as many rounds as possible").
+  // Null on WODs whose movement list already says everything. Never the home
+  // of the rep numbers themselves: those live in WodMovement.repScheme, so
+  // the two can't disagree.
+  description     String?
   // Interval structure for the emom/tabata timer (Feature #30). Null on
   // AMRAP/For Time, and on interval WODs seeded before these existed —
   // `resolveIntervalConfig` in packages/shared fills those in with the
@@ -98,6 +104,18 @@ model WodMovement {
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
   reps       Int
   order      Int
+
+  // Per-round counts for a descending/ascending ladder — [21, 15, 9] for a
+  // 21-15-9. Empty means "flat": the movement is `reps` every round, which is
+  // every WOD that isn't a ladder. Empty rather than null because Prisma has
+  // no optional scalar list; `hasRepScheme` in packages/shared is the check to
+  // use rather than testing the array by hand.
+  //
+  // `reps` stays the total (sum of the scheme) so the advancement math and the
+  // split anchor keep reading one number. A CHECK constraint added in this
+  // field's migration holds `reps = sum(repScheme)` whenever a scheme is set —
+  // the two can never drift, whatever writes the row.
+  repScheme  Int[]    @default([])
 }
 
 // One active row per user, read by the scheduler.

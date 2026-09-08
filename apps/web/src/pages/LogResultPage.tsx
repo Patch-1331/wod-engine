@@ -94,6 +94,9 @@ function LogResultForm({
       <p className="mt-1 text-xs font-semibold tracking-[0.1em] text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>
         {wod.type.toUpperCase()} · {wod.timeCapMinutes} MIN
       </p>
+      {wod.description && (
+        <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{wod.description}</p>
+      )}
 
       {session && !existingLog && (
         <div

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { effectiveRounds } from "@wod-engine/shared";
 import { api } from "../lib/api";
 import { DigitReadout } from "../components/DigitReadout";
 
@@ -52,6 +53,9 @@ export function TodayPage() {
   // for the exercise at the user's current rung before this response left
   // the API, so there's nothing left for the user to toggle or choose.
   const isAutoScaled = wod.movements.some((m) => m.exercise.line !== null);
+  // A ladder's own scheme sets the rounds — a 21-15-9 is three rounds whether
+  // or not the WOD row happens to declare it.
+  const totalRounds = effectiveRounds(wod);
 
   return (
     <div className="flex flex-1 flex-col p-6">
@@ -75,10 +79,16 @@ export function TodayPage() {
         )}
       </div>
 
+      {/* how the workout is meant to be performed — engraved, not lit, and
+          absent entirely on the WODs whose movement list already says it */}
+      {wod.description && (
+        <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">{wod.description}</p>
+      )}
+
       {/* the readout bank — the world's signature moment */}
       <div className="mt-5 grid grid-cols-2 gap-2.5">
         <DigitReadout value={String(wod.timeCapMinutes).padStart(2, "0")} label="Time cap (min)" size="lg" />
-        <DigitReadout value={wod.rounds ? String(wod.rounds) : "—"} label="Rounds" size="lg" />
+        <DigitReadout value={totalRounds ? String(totalRounds) : "—"} label="Rounds" size="lg" />
       </div>
 
       {/* engraved plate — the fixed layer, never editable, never lit */}
@@ -99,7 +109,7 @@ export function TodayPage() {
                 className="text-lg font-bold"
                 style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
               >
-                {m.exercise.unit === "seconds" ? `${m.reps}s` : m.reps}
+                {movementCount(m)}
               </span>
             </div>
           ))}
@@ -138,6 +148,21 @@ export function TodayPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * What the plate shows for a movement: the ladder as prescribed ("21-15-9")
+ * where there is one, otherwise the flat count. `reps` is the ladder's total,
+ * which is the one number that would tell the athlete nothing.
+ */
+function movementCount(m: {
+  reps: number;
+  repScheme: number[];
+  exercise: { unit: string };
+}): string {
+  const suffix = m.exercise.unit === "seconds" ? "s" : "";
+  if (m.repScheme.length > 0) return `${m.repScheme.join("-")}${suffix}`;
+  return `${m.reps}${suffix}`;
 }
 
 function CheckIcon() {

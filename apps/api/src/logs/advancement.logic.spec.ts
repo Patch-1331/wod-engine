@@ -1,49 +1,28 @@
 import {
   computeRungChanges,
   MovementForAdvancement,
-  totalRepsForMovement,
 } from './advancement.logic';
 
-describe('totalRepsForMovement', () => {
-  it('multiplies reps per round by completed rounds when there is no split', () => {
-    expect(totalRepsForMovement({ reps: 8 }, 3, null)).toBe(24);
-  });
-
-  it('is zero when no rounds were completed', () => {
-    expect(totalRepsForMovement({ reps: 8 }, 0, null)).toBe(0);
-  });
-
-  it("treats a single-round WOD's reps as the full prescribed amount", () => {
-    // e.g. a for_time WOD with rounds: 1 and reps: 75 — one "round complete"
-    // tap means the whole 75 was done.
-    expect(totalRepsForMovement({ reps: 75 }, 1, null)).toBe(75);
-  });
-
-  it('sums front-loaded split chunks instead of the full per-round reps', () => {
-    // 20 reps split into 6 rounds -> 4,4,3,3,3,3 (front-loaded remainder).
-    // Completing 2 split-taps should count 4+4=8, not 2*20=40.
-    expect(totalRepsForMovement({ reps: 20 }, 2, 6)).toBe(8);
-  });
-
-  it('caps split-tap counting at the number of split rounds that exist', () => {
-    // Only 6 split rounds exist; a stray 7th tap shouldn't add more reps.
-    const all6 = totalRepsForMovement({ reps: 20 }, 6, 6);
-    const withExtraTap = totalRepsForMovement({ reps: 20 }, 7, 6);
-    expect(withExtraTap).toBe(all6);
-    expect(all6).toBe(20);
-  });
-});
+// The per-round arithmetic itself lives in packages/shared (round-split) and
+// is unit-tested there; what matters here is that the advancement rule reads
+// through it, so a ladder is credited as prescribed.
 
 describe('computeRungChanges', () => {
   const pushUp: MovementForAdvancement = {
     reps: 8,
+    repScheme: [],
     exercise: { line: 'push_horizontal' },
   };
   const airSquat: MovementForAdvancement = {
     reps: 15,
+    repScheme: [],
     exercise: { line: 'squat' },
   };
-  const burpee: MovementForAdvancement = { reps: 10, exercise: { line: null } };
+  const burpee: MovementForAdvancement = {
+    reps: 10,
+    repScheme: [],
+    exercise: { line: null },
+  };
 
   const maxRungByLine = new Map([
     ['push_horizontal', 3],
@@ -134,6 +113,46 @@ describe('computeRungChanges', () => {
       maxRungByLine,
     );
     expect(changes).toEqual([]);
+  });
+
+  it('credits a ladder by its scheme, not an even share of the total', () => {
+    // Fran's Cousin: 21-15-9 push-ups, abandoned after the first round.
+    // 21 reps clears the 15-rep floor, so the line holds. An even 3-way
+    // split of the 45 total would have credited 15 and dropped the line.
+    const ladderPushUp: MovementForAdvancement = {
+      reps: 45,
+      repScheme: [21, 15, 9],
+      exercise: { line: 'push_horizontal' },
+    };
+    const currentRung = new Map([['push_horizontal', 2]]);
+    const changes = computeRungChanges(
+      [ladderPushUp],
+      1,
+      null,
+      currentRung,
+      maxRungByLine,
+    );
+    expect(changes).toEqual([]);
+  });
+
+  it('lets the scheme win over a stale roundSplitCount', () => {
+    // A session that set a split before its WOD gained a scheme: the ladder
+    // is how the workout was actually performed, so it decides the credit.
+    const ladderPushUp: MovementForAdvancement = {
+      reps: 45,
+      repScheme: [21, 15, 9],
+      exercise: { line: 'push_horizontal' },
+    };
+    const currentRung = new Map([['push_horizontal', 1]]);
+    const changes = computeRungChanges(
+      [ladderPushUp],
+      2,
+      5,
+      currentRung,
+      maxRungByLine,
+    );
+    // 21+15 = 36, past the 24-rep advance threshold.
+    expect(changes).toEqual([{ line: 'push_horizontal', from: 1, to: 2 }]);
   });
 
   it('evaluates multiple lines in one WOD independently', () => {

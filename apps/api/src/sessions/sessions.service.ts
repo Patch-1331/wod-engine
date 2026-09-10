@@ -11,7 +11,7 @@ import type {
 } from '@wod-engine/shared';
 import { hasRepScheme, resolveIntervalConfig } from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import { parseSplits, toSessionDto } from './session.mapper';
+import { toRoundSplits, toSessionDto } from './session.mapper';
 import { advanceInterval, mergeRoundSplit } from './session.logic';
 
 @Injectable()
@@ -40,7 +40,7 @@ export class SessionsService {
         assignmentId,
         userId,
         capSeconds: assignment.wod.timeCapMinutes * 60,
-        roundSplits: '[]',
+        roundSplits: [],
         status: 'in_progress',
       },
     });
@@ -79,12 +79,12 @@ export class SessionsService {
       throw new BadRequestException('Session is no longer in progress');
     }
 
-    const splits = parseSplits(session.roundSplits);
+    const splits = toRoundSplits(session.roundSplits);
     const updatedSplits = mergeRoundSplit(splits, round);
 
     const updated = await this.prisma.workoutSession.update({
       where: { assignmentId },
-      data: { roundSplits: JSON.stringify(updatedSplits) },
+      data: { roundSplits: updatedSplits },
     });
 
     return toSessionDto(updated);
@@ -125,12 +125,12 @@ export class SessionsService {
       );
     }
 
-    const progress = advanceInterval(parseSplits(session.roundSplits), next);
+    const progress = advanceInterval(toRoundSplits(session.roundSplits), next);
 
     const updated = await this.prisma.workoutSession.update({
       where: { assignmentId },
       data: {
-        roundSplits: JSON.stringify(progress.roundSplits),
+        roundSplits: progress.roundSplits,
         intervalIndex: progress.intervalIndex,
         intervalStartedAtSeconds: progress.intervalStartedAtSeconds,
       },

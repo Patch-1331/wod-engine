@@ -10,8 +10,9 @@ rewrite.
 30-minute-cap scheduler; an in-workout stopwatch + tap-to-log round
 tracker (AMRAP/For Time) and an auto-advancing interval timer
 (EMOM/Tabata), both with sound + vibration cues; logging results
-pre-filled from the tracked session; history and PRs. Runs entirely on
-localhost, SQLite as the database.
+pre-filled from the tracked session; history and PRs. As originally
+scoped this ran entirely on localhost with SQLite; the database is now
+Postgres (#39) and a hosted deploy exists.
 
 **Out (for now):** accounts/auth, hosted deployment, weighted/equipment-
 heavy movements, and iOS/Android apps. See the GitHub Project (linked

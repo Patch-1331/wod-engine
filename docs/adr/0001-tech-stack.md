@@ -16,6 +16,9 @@ TypeScript everywhere, in one npm-workspaces monorepo:
   as it grows) on Node.
 - **Database:** SQLite via Prisma locally; Prisma makes a later move to
   Postgres a config change, not a rewrite.
+  <br>*Update (2026-09): that move has happened — the datasource is Postgres
+  everywhere, local development included (see #39). The prediction held: it
+  was a provider swap plus migrations, with no application code rewritten.*
 - **Shared types:** `packages/shared` — Zod schemas are the one source of
   truth for DTOs, imported by every client.
 - **Web:** React + Vite + TypeScript + TanStack Query + Tailwind CSS.

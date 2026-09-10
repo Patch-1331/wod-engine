@@ -19,7 +19,7 @@ function prismaWith(movements: { reps: number; repScheme: number[] }[]) {
       assignmentId: 'assignment-1',
       startedAt: new Date(),
       capSeconds: 600,
-      roundSplits: '[]',
+      roundSplits: [],
       status: 'in_progress',
       finishedAtSeconds: null,
       roundSplitCount: null,

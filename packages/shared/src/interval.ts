@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { WodType } from "./enums";
+import type { WodType } from "./enums.js";
 
 /**
  * The interval structure an EMOM/Tabata screen counts down (Feature #30).

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { exercisePhase, exerciseUnit, movementPattern, progressionLine } from "./enums";
+import { exercisePhase, exerciseUnit, movementPattern, progressionLine } from "./enums.js";
 
 export const exerciseSchema = z.object({
   id: z.string(),

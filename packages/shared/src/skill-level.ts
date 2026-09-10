@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { progressionLine } from "./enums";
+import { progressionLine } from "./enums.js";
 
 /** Current rung per progression line — one row per line, v1 single-user (see User). */
 export const skillLevelSchema = z.object({

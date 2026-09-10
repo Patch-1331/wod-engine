@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { assignmentStatus } from "./enums";
+import { assignmentStatus } from "./enums.js";
 
 export const dailyAssignmentSchema = z.object({
   id: z.string(),

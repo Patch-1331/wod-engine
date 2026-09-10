@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { exerciseUnit, movementPattern, progressionLine, wodType } from "./enums";
+import { exerciseUnit, movementPattern, progressionLine, wodType } from "./enums.js";
 
 export const wodMovementSchema = z
   .object({

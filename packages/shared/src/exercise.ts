@@ -9,6 +9,9 @@ export const exerciseSchema = z.object({
   needsBar: z.boolean(),
   scalable: z.boolean(),
   unit: exerciseUnit,
+  // How the movement is performed, in prose. Null on rows added outside the
+  // seed; every seeded exercise has one.
+  instructions: z.string().nullable(),
   line: progressionLine.nullable(),
   rung: z.number().int().nonnegative().nullable(),
   altExerciseId: z.string().nullable(),

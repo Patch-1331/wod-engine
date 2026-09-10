@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { InstructionsCaret, InstructionsPanel } from "../components/MovementInstructions";
 
 export function CooldownPage() {
   const { assignmentId = "" } = useParams();
@@ -10,6 +11,9 @@ export function CooldownPage() {
 
   const { data: today, isLoading } = useQuery({ queryKey: ["today"], queryFn: api.today });
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  // Which item's instructions are open, by exercise id — the checklist is
+  // where an unfamiliar movement name is most likely to stop someone.
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
 
   const proceedMutation = useMutation({
     mutationFn: async (allChecked: boolean) => {
@@ -57,25 +61,46 @@ export function CooldownPage() {
         <div className="divide-y" style={{ borderColor: "var(--border)" }}>
           {cooldown.map((item) => {
             const isChecked = checked.has(item.id);
+            const isOpen = openItemId === item.id;
+            const panelId = `checklist-instructions-${item.id}`;
             return (
-              <button
-                key={item.id}
-                onClick={() => toggle(item.id)}
-                className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
-                style={{ borderColor: "var(--border)" }}
-              >
-                <CheckboxMark checked={isChecked} />
-                <span
-                  className="font-semibold tracking-wide"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    color: isChecked ? "var(--ink-faint)" : "var(--ink-soft)",
-                    textDecoration: isChecked ? "line-through" : "none",
-                  }}
-                >
-                  {item.name.toUpperCase()}
-                </span>
-              </button>
+              <div key={item.id} style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-center">
+                  {/* Checking off stays the whole-row tap it was — the caret
+                      is its own control so reading up on a movement never
+                      costs an accidental tick. */}
+                  <button
+                    onClick={() => toggle(item.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left"
+                  >
+                    <CheckboxMark checked={isChecked} />
+                    <span
+                      className="truncate font-semibold tracking-wide"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        color: isChecked ? "var(--ink-faint)" : "var(--ink-soft)",
+                        textDecoration: isChecked ? "line-through" : "none",
+                      }}
+                    >
+                      {item.name.toUpperCase()}
+                    </span>
+                  </button>
+                  {item.instructions && (
+                    <button
+                      onClick={() => setOpenItemId(isOpen ? null : item.id)}
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      aria-label={`How to do ${item.name}`}
+                      className="self-stretch px-4"
+                    >
+                      <InstructionsCaret open={isOpen} />
+                    </button>
+                  )}
+                </div>
+                {isOpen && item.instructions && (
+                  <InstructionsPanel id={panelId} text={item.instructions} />
+                )}
+              </div>
             );
           })}
         </div>

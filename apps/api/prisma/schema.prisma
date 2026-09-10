@@ -31,6 +31,14 @@ model Exercise {
   scalable Boolean @default(false)
   unit     String  @default("reps") // reps | seconds — seconds for timed holds (e.g. plank family)
 
+  // How the movement is performed, in prose — the setup, the rep, and the
+  // one or two cues that decide whether it's the movement at all. Every
+  // seeded exercise has one (the seed type requires it); nullable only so a
+  // row added outside the seed isn't blocked on copy that hasn't been
+  // written yet. Never the home of rep counts or scaling advice: counts are
+  // WodMovement.reps, and the easier variant is already altExerciseId.
+  instructions String?
+
   // Progression tracking (Feature #2) — finer-grained than `pattern`, since a
   // pattern like push or core actually contains multiple independent skill
   // lines (push_horizontal vs push_vertical; core_dynamic/core_hold/core_side).

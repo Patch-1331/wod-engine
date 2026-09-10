@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AdvanceInterval, IntervalConfig, Wod, WorkoutSession } from "@wod-engine/shared";
 import { api } from "../../lib/api";
+import { InstructionsCaret, InstructionsPeek } from "../../components/MovementInstructions";
 import { formatClock } from "../../lib/clock";
 import {
   countdownTickCue,
@@ -120,6 +121,12 @@ export function IntervalWorkout({
     advanceMutation.mutate({ intervalIndex: 0, atSeconds: elapsedSeconds });
   }
 
+  // Which movement's instructions are being read, by movement id. An overlay
+  // rather than an expanding row: this clock advances itself, so nothing on
+  // the screen may shift under a glance.
+  const [peekMovementId, setPeekMovementId] = useState<string | null>(null);
+  const peekMovement = wod.movements.find((m) => m.id === peekMovementId);
+
   const rotation = rotationForWodType(wod.type);
   const activeIndex = state && !state.isComplete ? state.index : null;
   const currentMovement =
@@ -164,6 +171,7 @@ export function IntervalWorkout({
           rotation={rotation}
           onStart={handleStart}
           startPending={advanceMutation.isPending}
+          onPeek={setPeekMovementId}
         />
       ) : state.isComplete ? (
         <CompletePanel intervalCount={config.intervalCount} />
@@ -230,29 +238,51 @@ export function IntervalWorkout({
             <div className="mt-2.5 flex flex-col">
               {wod.movements.map((m) => {
                 const isActive = focusMovement?.id === m.id;
-                return (
-                  <div
-                    key={m.id}
-                    className="flex items-center justify-between border-b py-2"
-                    style={{ borderColor: "var(--border)" }}
-                  >
+                const rowContent = (
+                  <>
                     <span
-                      className="text-sm font-semibold"
+                      className="truncate text-sm font-semibold"
                       style={{ color: isActive ? "var(--glow)" : "var(--ink-soft)", fontFamily: "var(--font-mono)" }}
                     >
                       {isActive ? "▸ " : "  "}
                       {m.exercise.name.toUpperCase()}
                     </span>
-                    <span
-                      className="text-lg font-bold"
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontVariantNumeric: "tabular-nums",
-                        color: isActive ? "var(--glow)" : "var(--ink)",
-                      }}
-                    >
-                      {m.exercise.unit === "seconds" ? `${m.reps}s` : m.reps}
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="text-lg font-bold"
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontVariantNumeric: "tabular-nums",
+                          color: isActive ? "var(--glow)" : "var(--ink)",
+                        }}
+                      >
+                        {m.exercise.unit === "seconds" ? `${m.reps}s` : m.reps}
+                      </span>
+                      {/* Trailing, so nothing comes between the name and the
+                          count — and clear of the ▸ that marks the interval
+                          in progress. */}
+                      {m.exercise.instructions ? <InstructionsCaret open={false} /> : <span aria-hidden="true" style={{ width: 12 }} />}
                     </span>
+                  </>
+                );
+
+                return m.exercise.instructions ? (
+                  <button
+                    key={m.id}
+                    onClick={() => setPeekMovementId(m.id)}
+                    aria-label={`How to do ${m.exercise.name}`}
+                    className="flex items-center justify-between gap-3 border-b py-2 text-left"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    {rowContent}
+                  </button>
+                ) : (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between gap-3 border-b py-2"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    {rowContent}
                   </div>
                 );
               })}
@@ -270,6 +300,18 @@ export function IntervalWorkout({
           </div>
         </div>
       )}
+
+      {/* Outside the phase branches on purpose: the READY panel and the
+          running clock both open it, and it outlives the rollover between
+          them. */}
+      {peekMovement?.exercise.instructions && (
+        <InstructionsPeek
+          name={peekMovement.exercise.name}
+          text={peekMovement.exercise.instructions}
+          onDismiss={() => setPeekMovementId(null)}
+          dismissLabel={state === null ? "CLOSE" : "BACK TO THE CLOCK"}
+        />
+      )}
     </div>
   );
 }
@@ -285,12 +327,14 @@ function ReadyPanel({
   rotation,
   onStart,
   startPending,
+  onPeek,
 }: {
   config: IntervalConfig;
   movements: Wod["movements"];
   rotation: MovementRotation;
   onStart: () => void;
   startPending: boolean;
+  onPeek: (movementId: string) => void;
 }) {
   return (
     <div className="flex flex-1 flex-col justify-center px-5 py-10">
@@ -311,23 +355,46 @@ function ReadyPanel({
         </p>
 
         <div className="mt-4 flex flex-col">
-          {movements.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-center justify-between border-t py-2"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <span className="text-sm font-semibold" style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
-                {m.exercise.name.toUpperCase()}
-              </span>
-              <span
-                className="text-base font-bold"
-                style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
+          {movements.map((m) => {
+            const rowContent = (
+              <>
+                <span className="truncate text-sm font-semibold" style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
+                  {m.exercise.name.toUpperCase()}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span
+                    className="text-base font-bold"
+                    style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
+                  >
+                    {m.exercise.unit === "seconds" ? `${m.reps}s` : m.reps}
+                  </span>
+                  {m.exercise.instructions ? <InstructionsCaret open={false} /> : <span aria-hidden="true" style={{ width: 12 }} />}
+                </span>
+              </>
+            );
+
+            // The last look before the clock starts running itself — the one
+            // moment on this screen where checking a movement is free.
+            return m.exercise.instructions ? (
+              <button
+                key={m.id}
+                onClick={() => onPeek(m.id)}
+                aria-label={`How to do ${m.exercise.name}`}
+                className="flex items-center justify-between gap-3 border-t py-2 text-left"
+                style={{ borderColor: "var(--border)" }}
               >
-                {m.exercise.unit === "seconds" ? `${m.reps}s` : m.reps}
-              </span>
-            </div>
-          ))}
+                {rowContent}
+              </button>
+            ) : (
+              <div
+                key={m.id}
+                className="flex items-center justify-between gap-3 border-t py-2"
+                style={{ borderColor: "var(--border)" }}
+              >
+                {rowContent}
+              </div>
+            );
+          })}
         </div>
       </div>
 

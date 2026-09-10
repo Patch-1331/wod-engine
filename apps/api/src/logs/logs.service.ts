@@ -3,12 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import type {
   LogResultRequest,
   WorkoutLog,
   WorkoutLogListItem,
 } from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { toRoundSplits } from '../sessions/session.mapper';
 import { computeRungChanges } from './advancement.logic';
 
 @Injectable()
@@ -81,10 +83,9 @@ export class LogsService {
       repScheme: number[];
       exercise: { line: string | null; unit: string };
     }[],
-    session: { roundSplits: string; roundSplitCount: number | null },
+    session: { roundSplits: Prisma.JsonValue; roundSplitCount: number | null },
   ): Promise<void> {
-    const completedRounds = (JSON.parse(session.roundSplits) as unknown[])
-      .length;
+    const completedRounds = toRoundSplits(session.roundSplits).length;
 
     const [skillLevels, linedExercises] = await Promise.all([
       this.prisma.skillLevel.findMany({ where: { userId } }),

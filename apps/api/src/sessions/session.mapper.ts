@@ -1,8 +1,17 @@
-import type { WorkoutSession as PrismaWorkoutSession } from '@prisma/client';
+import type {
+  Prisma,
+  WorkoutSession as PrismaWorkoutSession,
+} from '@prisma/client';
 import type { RoundSplit, WorkoutSession } from '@wod-engine/shared';
 
-export function parseSplits(json: string): RoundSplit[] {
-  return JSON.parse(json) as RoundSplit[];
+/**
+ * `roundSplits` is a jsonb column, so Prisma hands it back as a JsonValue --
+ * already-structured data rather than the text this used to JSON.parse (#39).
+ * The cast is the one place that names the shape, so the assertion stays here
+ * rather than being repeated at each read site.
+ */
+export function toRoundSplits(value: Prisma.JsonValue): RoundSplit[] {
+  return (value ?? []) as RoundSplit[];
 }
 
 export function toSessionDto(session: PrismaWorkoutSession): WorkoutSession {
@@ -11,7 +20,7 @@ export function toSessionDto(session: PrismaWorkoutSession): WorkoutSession {
     assignmentId: session.assignmentId,
     startedAt: session.startedAt.toISOString(),
     capSeconds: session.capSeconds,
-    roundSplits: parseSplits(session.roundSplits),
+    roundSplits: toRoundSplits(session.roundSplits),
     status: session.status as WorkoutSession['status'],
     finishedAtSeconds: session.finishedAtSeconds,
     roundSplitCount: session.roundSplitCount,

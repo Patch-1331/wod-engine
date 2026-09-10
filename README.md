@@ -9,7 +9,7 @@ See [`docs/plan.md`](docs/plan.md) for the full plan and
 
 ## Stack
 
-TypeScript monorepo (npm workspaces): NestJS + Prisma + SQLite API,
+TypeScript monorepo (npm workspaces): NestJS + Prisma + Postgres API,
 React + Vite + Tailwind web client, Zod-schema types shared between them
 in `packages/shared`.
 

@@ -155,9 +155,11 @@ model DailyAssignment {
   @@unique([id, userId])
 }
 
-// The live timer's state. roundSplits is JSON: [{ round, atSeconds }],
+// The live timer's state. roundSplits is jsonb: [{ round, atSeconds }],
 // written on every "round complete" tap so a locked phone or a refresh
-// never loses progress.
+// never loses progress. Native jsonb rather than JSON-in-text (its shape
+// under SQLite, see #39) so the database itself rejects a malformed write
+// instead of it surfacing as a parse error on the next read.
 model WorkoutSession {
   id                String          @id @default(cuid())
   userId            String
@@ -170,7 +172,7 @@ model WorkoutSession {
   assignment        DailyAssignment @relation(fields: [assignmentId, userId], references: [id, userId], onDelete: Cascade)
   startedAt         DateTime        @default(now())
   capSeconds        Int
-  roundSplits       String          @default("[]") // JSON-encoded RoundSplit[]
+  roundSplits       Json            @default("[]") // RoundSplit[]
   status            String          @default("in_progress") // in_progress | completed | abandoned
   finishedAtSeconds Int? // elapsed time when "Finish" was tapped — the natural score for a For Time WOD
   roundSplitCount   Int? // optional user-chosen round count to break high-rep movements into; null = unsplit

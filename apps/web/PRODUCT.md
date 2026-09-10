@@ -41,11 +41,11 @@ vibration cues, ends at the time cap) → Log Result (pre-filled from the
 tracked session, editable) → History/Stats (past sessions, PRs,
 progressions).
 
-Runs local-first for v1: SQLite-backed API on localhost, no accounts or
-hosted deployment yet (planned later per the roadmap in
-`docs/plan.md`). Architected so the same shared schema layer
-(`packages/shared`) can support a future React Native mobile client
-without a rewrite.
+Postgres-backed API, runnable on localhost and deployed for real use.
+Accounts and hosted deployment, once listed here as planned later, have
+since landed (see the roadmap in `docs/plan.md`). Architected so the
+same shared schema layer (`packages/shared`) can support a future React
+Native mobile client without a rewrite.
 
 ## Capabilities and Constraints
 

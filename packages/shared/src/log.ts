@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { movementPattern, resultType, wodType } from "./enums";
+import { movementPattern, resultType, wodType } from "./enums.js";
 
 export const workoutLogSchema = z.object({
   id: z.string(),

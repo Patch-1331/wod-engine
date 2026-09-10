@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { checklistExerciseSchema } from "./checklist";
-import { assignmentStatus } from "./enums";
-import { wodSchema } from "./wod";
-import { workoutSessionSchema } from "./session";
+import { checklistExerciseSchema } from "./checklist.js";
+import { assignmentStatus } from "./enums.js";
+import { wodSchema } from "./wod.js";
+import { workoutSessionSchema } from "./session.js";
 
 export const todayAssignmentSchema = z.object({
   id: z.string(),

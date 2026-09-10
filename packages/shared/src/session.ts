@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sessionStatus } from "./enums";
+import { sessionStatus } from "./enums.js";
 
 export const roundSplitSchema = z.object({
   round: z.number().int().positive(),

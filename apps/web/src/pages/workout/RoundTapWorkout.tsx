@@ -13,6 +13,7 @@ import { api } from "../../lib/api";
 import { formatClock } from "../../lib/clock";
 import { roundCompleteCue, capReachedCue } from "../../lib/cues";
 import { MinusIcon, PlusIcon } from "../../components/StepperIcons";
+import { InstructionsCaret, InstructionsPeek } from "../../components/MovementInstructions";
 import { useNow } from "./useWorkoutSession";
 import { WorkoutChrome } from "./WorkoutChrome";
 
@@ -63,6 +64,10 @@ export function RoundTapWorkout({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today"] }),
   });
 
+  // Which movement's instructions are being read, by movement id. An overlay
+  // rather than an expanding row: this screen's layout is fixed to the
+  // viewport, and the round button must not move under a waiting thumb.
+  const [peekMovementId, setPeekMovementId] = useState<string | null>(null);
   const [splitPanelOpen, setSplitPanelOpen] = useState(false);
   const [splitMode, setSplitMode] = useState<"rounds" | "reps">("rounds");
   const [splitInput, setSplitInput] = useState(5);
@@ -73,6 +78,7 @@ export function RoundTapWorkout({
   const splits = [...session.roundSplits].sort((a, b) => b.round - a.round);
   const currentRound = session.roundSplits.length + 1;
 
+  const peekMovement = wod.movements.find((m) => m.id === peekMovementId);
   const anchor = anchorMovement(wod.movements);
   // A rep scheme is the workout's own structure, so it outranks a manual
   // split — and leaves the SPLIT control nothing to do. `roundSplitCount` may
@@ -253,19 +259,44 @@ export function RoundTapWorkout({
         )}
 
         <div className="mt-2.5 flex flex-col">
-          {wod.movements.map((m) => (
-            <div key={m.id} className="flex items-center justify-between border-b py-2" style={{ borderColor: "var(--border)" }}>
-              <span className="text-sm font-semibold" style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
-                {m.exercise.name.toUpperCase()}
-              </span>
-              <span
-                className="text-lg font-bold"
-                style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
+          {wod.movements.map((m) => {
+            const count = m.exercise.unit === "seconds" ? `${repsForMovement(m)}s` : repsForMovement(m);
+            const rowContent = (
+              <>
+                <span className="truncate text-sm font-semibold" style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
+                  {m.exercise.name.toUpperCase()}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span
+                    className="text-lg font-bold"
+                    style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
+                  >
+                    {count}
+                  </span>
+                  {/* Trailing rather than leading: the count is what the eye
+                      comes here for mid-round, and nothing should sit between
+                      the name and it. */}
+                  {m.exercise.instructions ? <InstructionsCaret open={false} /> : <span aria-hidden="true" style={{ width: 12 }} />}
+                </span>
+              </>
+            );
+
+            return m.exercise.instructions ? (
+              <button
+                key={m.id}
+                onClick={() => setPeekMovementId(m.id)}
+                aria-label={`How to do ${m.exercise.name}`}
+                className="flex items-center justify-between gap-3 border-b py-2 text-left"
+                style={{ borderColor: "var(--border)" }}
               >
-                {m.exercise.unit === "seconds" ? `${repsForMovement(m)}s` : repsForMovement(m)}
-              </span>
-            </div>
-          ))}
+                {rowContent}
+              </button>
+            ) : (
+              <div key={m.id} className="flex items-center justify-between gap-3 border-b py-2" style={{ borderColor: "var(--border)" }}>
+                {rowContent}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -303,6 +334,14 @@ export function RoundTapWorkout({
           ))}
         </div>
       </div>
+
+      {peekMovement?.exercise.instructions && (
+        <InstructionsPeek
+          name={peekMovement.exercise.name}
+          text={peekMovement.exercise.instructions}
+          onDismiss={() => setPeekMovementId(null)}
+        />
+      )}
     </div>
   );
 }

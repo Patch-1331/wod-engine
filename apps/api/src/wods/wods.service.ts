@@ -22,7 +22,13 @@ export class WodsService {
   async getChecklists(dominantPattern: string) {
     const pool = await this.prisma.exercise.findMany({
       where: { phase: { not: null } },
-      select: { id: true, name: true, pattern: true, phase: true },
+      select: {
+        id: true,
+        name: true,
+        pattern: true,
+        phase: true,
+        instructions: true,
+      },
     });
 
     return {

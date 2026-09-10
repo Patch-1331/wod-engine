@@ -18,6 +18,10 @@ export const wodMovementSchema = z
       pattern: movementPattern,
       needsBar: z.boolean(),
       unit: exerciseUnit,
+      // How the movement is performed, in prose — carried on the movement so
+      // every screen that lists a WOD can offer it without a second request.
+      // Null on exercises added outside the seed.
+      instructions: z.string().nullable(),
       // Progression tracking (Feature #2) — null for exercises not on a
       // tracked ladder (e.g. cardio). See ProgressionLine for why this is
       // finer-grained than `pattern`.

@@ -64,8 +64,12 @@ services:
     # no-op so re-seeding never resets progress), so it's safe on every deploy.
     # Without it migrate deploy leaves empty tables and the scheduler has no
     # exercises or schedule rule to build a WOD from.
+    # Run through the workspace, not `npx prisma ... --schema <path>` from the
+    # root: Prisma 7 takes the connection string from apps/api/prisma.config.ts,
+    # and it only finds that file when apps/api is the working directory. From
+    # the root it fails with "datasource.url property is required".
     preDeployCommand: >-
-      npx prisma migrate deploy --schema apps/api/prisma/schema.prisma &&
+      npm run prisma:migrate:deploy --workspace apps/api &&
       npm run prisma:seed --workspace apps/api
     # Not dist/main: prisma/seed.ts sits inside the compile scope, so nest
     # build emits to dist/src/ rather than flattening to dist/.

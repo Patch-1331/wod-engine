@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // Mirrors the Clerk user. `id` is Clerk's own user id (e.g. "user_2ab..."),

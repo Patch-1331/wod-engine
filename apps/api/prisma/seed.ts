@@ -1,6 +1,17 @@
+import "dotenv/config";
+
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+// Prisma 7 requires a driver adapter — a bare `new PrismaClient()` throws at
+// construction. Run directly by ts-node rather than through the Prisma CLI,
+// so .env is loaded here too instead of being inherited from it.
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is not set");
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString }),
+});
 
 type ExerciseSeed = {
   name: string;

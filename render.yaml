@@ -41,6 +41,21 @@ services:
     # Install at the repo root: this is an npm workspaces monorepo and
     # apps/api depends on @wod-engine/shared, so apps/api can't install alone.
     rootDir: .
+    # Without this, every push to main redeploys this service even when it
+    # only touched apps/web. packages/shared is listed here *and* in the web
+    # service's filter because both apps depend on it; leaving it out of one
+    # means a shared-package change never reaches that app. The root
+    # package.json and lockfile are in because they change what npm ci
+    # installs, and render.yaml because it defines the build itself.
+    # Trade-off: a commit matching no filter creates no deploy record at all,
+    # so this service's latest deploy can sit several commits behind main.
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - package.json
+        - package-lock.json
+        - render.yaml
     # prisma generate is explicit because the root postinstall only builds
     # packages/shared, and @prisma/client's own postinstall doesn't reliably
     # find apps/api/prisma/schema.prisma through a hoisted workspace install.
@@ -101,6 +116,17 @@ services:
     runtime: static
     branch: main
     rootDir: .
+    # See the API service's filter above for the reasoning. Note that this one
+    # deliberately excludes apps/api: nothing the API ships is baked into the
+    # frontend bundle — the API's origin arrives through VITE_API_BASE_URL,
+    # which is service config rather than a tracked file.
+    buildFilter:
+      paths:
+        - apps/web/**
+        - packages/shared/**
+        - package.json
+        - package-lock.json
+        - render.yaml
     # Only the web workspace: npm ci already builds packages/shared via the
     # root postinstall, and the API is a separate service.
     buildCommand: npm ci && npm run build --workspace apps/web

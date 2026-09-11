@@ -460,6 +460,8 @@ exercise pool" — never built; `generateWodForDate` only reads existing rows.
 It stays deferred, and has its own blocker: `Wod.name` is `@unique`, so
 generated rows need disambiguated names.
 
+Tracked as #141, with a story per item below.
+
 ## Build order
 
 - **Phase 1 — athlete-owned progression.** Substitution UI on Today, the
@@ -477,7 +479,7 @@ generated rows need disambiguated names.
 - **Phase 4 — the `movements` day.** Third runner, `WorkoutSetLog`, History
   and Stats shapes.
 - **Phase 5 — content.** Library expansion, then 2–3 real programs.
-- **Later** — program editor (the deferred #20), in-program intensity
+- **Later** — program editor (#17), in-program intensity
   progression, the template generator.
 
 ## Open questions
@@ -486,7 +488,7 @@ Everything that shaped the model is settled. What's left is scoped work,
 deliberately deferred:
 
 1. **Program editor** — authoring your own weeks. The same unbuilt work
-   already deferred as #20, and the reason `Plan` is seeded library content
+   already tracked as #17, and the reason `Plan` is seeded library content
    for now.
 2. **Template generator** — `docs/plan.md` describes one; it was never built,
    and `Wod.name` being `@unique` blocks generated rows until that changes.

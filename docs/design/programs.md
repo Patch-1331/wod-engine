@@ -34,7 +34,7 @@ the scheduler, the today response, History and Stats.
 | `Plan` | name, summary, goal, scheduleMode, min/maxDaysPerWeek, defaultDays, minWeeks, maxWeeks, defaultWeeks | The program definition. Shared library content, like `Wod`. |
 | `PlanWeek` | planId, order, phase, label | One authored week. `phase` is `intro \| core \| peak`; core weeks are the block that repeats. |
 | `PlanSlot` | planWeekId, dayOfWeek, kind, priority, wodId?, prescription fields | One day. `kind` is `rest \| wod_pinned \| wod_generated \| movements`. |
-| `PlanEnrollment` | userId, planId, startDate, weeks, status, completedAt | The athlete's run at a program. At most one `active` per user. |
+| `PlanEnrollment` | userId, planId, startDate, weeks, status, completedAt, startingRungs, summary | The athlete's run at a program. At most one `active` per user. `startingRungs` and `summary` are snapshots — see [Starting and finishing a program](#starting-and-finishing-a-program). |
 
 `DailyAssignment` gains `enrollmentId`, `planSlotId` and `planDayIndex`, all
 nullable, using the same composite `(id, userId)` foreign key the repo
@@ -112,6 +112,29 @@ intro weeks in order, core weeks cycled to fill, then peak weeks. When
 `chosenWeeks` can't hold intro + peak, drop intro first (a beginner ramp is
 more skippable than a peak), then peak. It must not throw.
 
+### Overload comes from the block, not from a multiplier
+
+A repeating core block and "the program gets harder" are in tension: weeks
+that repeat verbatim escalate nothing. The resolution needs no schema —
+**an author who wants escalation writes a core block that already waves**, and
+it then repeats as a wave rather than a flat line:
+
+```
+core wk A → chin-up 3x5
+core wk B → chin-up 4x5
+core wk C → chin-up 5x5
+   repeats → A B C A B C …
+```
+
+No progression rule, no volume multiplier stacking on top of rung
+substitution. Sets and reps stay authored per slot, where they can be read
+directly.
+
+Two constraints follow. `expandPlanWeeks` must cycle core weeks **in order**,
+never shuffled, or the wave is destroyed. And `minWeeks` must be at least
+intro + one full core block + peak, so a program can't truncate mid-wave and
+end on a light week.
+
 ### Date → slot
 
 Keep **lazy** materialization: enrolling writes no assignments, and
@@ -132,6 +155,75 @@ Both functions are pure (repo style: `apps/api/src/plans/*.logic.ts` with
 specs alongside, mirroring `scheduler.logic.ts`), so the same code powers a
 preview endpoint that renders a program's whole calendar before enrolling,
 with no writes.
+
+## Starting and finishing a program
+
+### The athlete picks the start date
+
+Enrollment asks when the program should begin rather than assuming today —
+most training apps don't offer this, and it costs nothing here because
+`startDate` already anchors `resolveSlotForDate`.
+
+Bounds do the work a separate "does the new program claim today?" rule would
+otherwise have to:
+
+- **Minimum** is today when today's assignment is untouched (`scheduled`),
+  and tomorrow once a session is in progress or the day is logged. A start
+  date therefore can't destroy work, and today's untouched assignment is
+  simply replaced.
+- **Maximum** a few weeks out. Default the selection to today, and mark the
+  next Monday — programs tend to feel like they start on a Monday.
+- Past dates are refused. Retrofitting a program over days already trained
+  has no sensible answer.
+
+**The gap before the start date fills itself.** Enroll on Thursday to start
+Monday and Thursday–Sunday still need a workout: `getToday` falls back to
+default WOD generation whenever `date < enrollment.startDate`. One active
+enrollment, a future start date, one rule — no second enrollment, no
+status-flipping job, and the partial unique index above still holds.
+
+### Snapshot the rungs at the start
+
+`PlanEnrollment.startingRungs` records every line's rung on the start date.
+`SkillLevel` only keeps the current value, so without this snapshot a
+finished program can count sessions but can't say what changed — which is
+the interesting half.
+
+### Finishing falls back to Just WODs
+
+On the day after the last one, the enrollment completes and Just WODs
+resumes, so Today always has a workout. A completion card sits above it:
+
+```
+── PULL-UP BUILDER COMPLETE ──
+6 weeks · 24 sessions · pull: negative → chin-up
+
+   [ Run it again ]  [ See what's next ]
+```
+
+Ignoring the prompt still gets the athlete training — the app never blocks a
+workout to ask a question. The rung line comes from diffing current
+`SkillLevel` against `startingRungs`.
+
+### Completed programs persist
+
+The card's figures are snapshotted onto `PlanEnrollment.summary` at
+completion rather than recomputed, so the record is stable and cheap to read.
+A short "Completed" list — program, length, sessions, dates, what moved —
+gives the athlete a record of programs finished, each re-runnable:
+
+```
+COMPLETED
+──────────────────────────────────────────
+Pull-Up Builder    6 wk · 24 sessions
+Aug 4 – Sep 15     pull: negative → chin-up
+
+Foundations        8 wk · 24 sessions
+Jun 2 – Jul 28     squat: air → reverse lunge
+```
+
+Scoping every Stats chart to a program stays out of scope. `enrollmentId` on
+`DailyAssignment` makes those queries easy whenever it's wanted.
 
 ### Settings while a program is active
 
@@ -298,7 +390,8 @@ generated rows need disambiguated names.
   index, the two CHECKs), shared Zod schemas, `expandPlanWeeks` and
   `resolveSlotForDate` with specs. Nothing user-visible.
 - **Phase 3 — programs over WOD days only.** Seed Just WODs as a real `Plan`,
-  enroll every user, onboarding (program → days → go), `pickWodForSlot`.
+  enroll every user, onboarding (program → days → start date → go),
+  `pickWodForSlot`, the start-date gap fallback, and the completion card.
   Exercises all the plumbing without needing the new runner.
 - **Phase 4 — the `movements` day.** Third runner, `WorkoutSetLog`, History
   and Stats shapes.
@@ -308,15 +401,13 @@ generated rows need disambiguated names.
 
 ## Open questions
 
-1. **Enrolling mid-day.** If today's assignment exists when the athlete
-   switches programs, does the new program claim it? Proposal: replace it
-   unless a session has started, else start tomorrow.
-2. **Program completion.** Day N+1: return to Just WODs with a completion
-   moment, offer a repeat at a longer length, or chain to a follow-on program
-   (which would need `Plan.nextPlanId`)?
-3. **In-program overload.** Slots can't yet say "same movements, more
-   volume". Athlete-owned rungs cover progression at the movement level, so
-   this is probably later — but an intensity field on `PlanSlot` is cheaper
-   to add now than to migrate in.
-4. **Stats scoped to a program.** `enrollmentId` on the assignment makes "how
-   did Pull-Up Builder go" free to query — in scope, or follow-on?
+Everything that shaped the model is settled. What's left is scoped work,
+deliberately deferred:
+
+1. **Program editor** — authoring your own weeks. The same unbuilt work
+   already deferred as #20, and the reason `Plan` is seeded library content
+   for now.
+2. **Template generator** — `docs/plan.md` describes one; it was never built,
+   and `Wod.name` being `@unique` blocks generated rows until that changes.
+3. **Stats scoped to a program** — `enrollmentId` on `DailyAssignment` makes
+   it a straightforward query whenever the Stats page is worth revisiting.

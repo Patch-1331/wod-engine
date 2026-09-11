@@ -1,5 +1,6 @@
 import {
   applyCurrentRung,
+  applySubstitutions,
   ExerciseWithLine,
   getWeekRange,
   isRestDay,
@@ -191,5 +192,80 @@ describe('applyCurrentRung', () => {
     const result = applyCurrentRung(movements, currentRung, exerciseAtRung);
     expect(result[0].exercise).toBe(diamondPushUp);
     expect(result[1].exercise).toBe(pistolSquat);
+  });
+});
+
+describe('applySubstitutions', () => {
+  type FakeExercise = { name: string };
+  const chinUp: FakeExercise = { name: 'Chin-up' };
+  const negative: FakeExercise = { name: 'Negative chin-up' };
+  const rowUnderTable: FakeExercise = { name: 'Row under table' };
+
+  const exerciseById = new Map<string, FakeExercise>([
+    ['chin-up', chinUp],
+    ['negative', negative],
+    ['row', rowUnderTable],
+  ]);
+
+  it('swaps the movement the athlete tapped', () => {
+    const movements = [{ id: 'm1', reps: 15, exercise: negative }];
+    const result = applySubstitutions(
+      movements,
+      new Map([['m1', 'chin-up']]),
+      exerciseById,
+    );
+    expect(result[0].exercise).toBe(chinUp);
+    expect(result[0].reps).toBe(15); // reps untouched — only the exercise changes
+  });
+
+  it('moves only the tapped row when a WOD names the same line twice', () => {
+    const movements = [
+      { id: 'm1', reps: 15, exercise: negative },
+      { id: 'm2', reps: 10, exercise: negative },
+    ];
+    const result = applySubstitutions(
+      movements,
+      new Map([['m2', 'chin-up']]),
+      exerciseById,
+    );
+    expect(result[0].exercise).toBe(negative);
+    expect(result[1].exercise).toBe(chinUp);
+  });
+
+  it('returns the movements untouched when nothing was swapped', () => {
+    const movements = [{ id: 'm1', reps: 15, exercise: negative }];
+    const result = applySubstitutions(
+      movements,
+      new Map<string, string>(),
+      exerciseById,
+    );
+    expect(result).toBe(movements);
+  });
+
+  it('leaves a movement unchanged when the swapped-to exercise is missing', () => {
+    const movements = [{ id: 'm1', reps: 15, exercise: negative }];
+    const result = applySubstitutions(
+      movements,
+      new Map([['m1', 'deleted-exercise']]),
+      exerciseById,
+    );
+    expect(result[0].exercise).toBe(negative);
+  });
+
+  it('swaps several movements independently', () => {
+    const movements = [
+      { id: 'm1', reps: 15, exercise: negative },
+      { id: 'm2', reps: 10, exercise: negative },
+    ];
+    const result = applySubstitutions(
+      movements,
+      new Map([
+        ['m1', 'chin-up'],
+        ['m2', 'row'],
+      ]),
+      exerciseById,
+    );
+    expect(result[0].exercise).toBe(chinUp);
+    expect(result[1].exercise).toBe(rowUnderTable);
   });
 });

@@ -145,3 +145,34 @@ export function applyCurrentRung<
     return { ...m, exercise: substitute };
   });
 }
+
+/**
+ * Overlays the athlete's own swaps for this day on top of the current-rung
+ * substitution (WOD-5). Runs last, and deliberately so: the rung is what the
+ * app assigned, the swap is what the athlete chose, and the athlete wins.
+ *
+ * Keyed by WodMovement id rather than by exercise or line, so a WOD naming
+ * the same line twice moves only the row that was tapped.
+ *
+ * A swap whose exercise is missing from `exerciseById` passes through
+ * unchanged rather than throwing, for the same reason a missing rung does:
+ * the athlete is about to train, and a data gap must not leave a hole in the
+ * movement list.
+ */
+export function applySubstitutions<M extends { id: string; exercise: E }, E>(
+  movements: M[],
+  substitutionByMovementId: Map<string, string>, // wodMovementId -> exerciseId
+  exerciseById: Map<string, E>,
+): M[] {
+  if (substitutionByMovementId.size === 0) return movements;
+
+  return movements.map((m) => {
+    const exerciseId = substitutionByMovementId.get(m.id);
+    if (exerciseId === undefined) return m;
+
+    const substitute = exerciseById.get(exerciseId);
+    if (!substitute) return m;
+
+    return { ...m, exercise: substitute };
+  });
+}

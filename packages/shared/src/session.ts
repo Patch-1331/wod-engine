@@ -18,6 +18,12 @@ export const workoutSessionSchema = z.object({
   finishedAtSeconds: z.number().int().nonnegative().nullable(),
   /** Optional user-chosen round count to break high-rep movements into; null = unsplit. */
   roundSplitCount: z.number().int().positive().nullable(),
+  /**
+   * Whether this session's clock stops at `capSeconds`, copied from the
+   * athlete's setting when the session started (see `settingsSchema`). False
+   * means the clock runs on past the cap and only a FINISH tap ends it.
+   */
+  autoStopAtCap: z.boolean(),
   // Feature #63 — stamped when each checklist is finished; null if skipped
   // or the setting is off.
   warmupCompletedAt: z.string().datetime().nullable(),

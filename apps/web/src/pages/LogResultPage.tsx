@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ResultType, WorkoutLog, WorkoutSession, Wod } from "@wod-engine/shared";
+import { wasCappedFinish, type ResultType, type WorkoutLog, type WorkoutSession, type Wod } from "@wod-engine/shared";
 import { api } from "../lib/api";
+import { formatClock } from "../lib/clock";
 import { MinusIcon, PlusIcon } from "../components/StepperIcons";
 
 function resultTypeForWod(wodType: string): ResultType {
@@ -107,6 +108,24 @@ function LogResultForm({
             <path d="M20 6 9 17l-5-5" />
           </svg>
           Synced from your timer — review and save
+        </div>
+      )}
+
+      {resultType === "time_seconds" && session && wasCappedFinish(session) && (
+        // Only where the cap changes what the score means. A For Time that ran
+        // out of road is capped rather than completed, and the time below reads
+        // exactly at the cap because that is where the clock stopped. An
+        // AMRAP/EMOM/Tabata always runs to its cap, so saying so there would be
+        // noise — the rounds are the score either way.
+        <div
+          className="mt-4 flex items-center gap-2 px-3 py-2 text-xs"
+          style={{ border: "1px solid var(--danger)", background: "var(--danger-tint)", color: "var(--danger)", fontFamily: "var(--font-mono)" }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={14} height={14}>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+          </svg>
+          Time cap reached — the clock stopped at {formatClock(session.capSeconds)}
         </div>
       )}
 

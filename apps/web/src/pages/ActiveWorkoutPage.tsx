@@ -8,12 +8,22 @@ import { useWorkoutSession } from "./workout/useWorkoutSession";
 /**
  * Picks the screen the WOD's format needs (Feature #30): EMOM and Tabata get
  * the auto-advancing interval countdown, AMRAP and For Time the round-tap
- * stopwatch. Both share the session, the wake lock, and the finish/cancel bar.
+ * stopwatch. Both share the session, the wake lock, the finish/cancel bar, and
+ * the stop the time cap puts on the clock.
  */
 export function ActiveWorkoutPage() {
   const { assignmentId = "" } = useParams();
-  const { isLoading, wod, session, isFinished, finish, finishPending, cancel, cancelPending } =
-    useWorkoutSession(assignmentId);
+  const {
+    isLoading,
+    wod,
+    session,
+    isFinished,
+    finish,
+    finishPending,
+    stopAtCap,
+    cancel,
+    cancelPending,
+  } = useWorkoutSession(assignmentId);
 
   if (isLoading || !wod || !session) {
     return <p className="p-6 text-[var(--ink-faint)]">Starting your workout…</p>;
@@ -25,6 +35,7 @@ export function ActiveWorkoutPage() {
       finishPending={finishPending}
       onCancel={cancel}
       cancelPending={cancelPending}
+      stopped={isFinished}
     />
   );
 
@@ -38,6 +49,9 @@ export function ActiveWorkoutPage() {
         session={session}
         config={intervalConfig}
         isFinished={isFinished}
+        onFinish={finish}
+        finishPending={finishPending}
+        stopAtCap={stopAtCap}
         chrome={chrome}
       />
     );
@@ -49,6 +63,9 @@ export function ActiveWorkoutPage() {
       wod={wod}
       session={session}
       isFinished={isFinished}
+      onFinish={finish}
+      finishPending={finishPending}
+      stopAtCap={stopAtCap}
       chrome={chrome}
     />
   );

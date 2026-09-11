@@ -7,6 +7,7 @@ export * from "./schedule.js";
 export * from "./assignment.js";
 export * from "./today.js";
 export * from "./session.js";
+export * from "./cap.js";
 export * from "./settings.js";
 export * from "./log.js";
 export * from "./user.js";

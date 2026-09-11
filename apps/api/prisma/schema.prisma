@@ -133,6 +133,12 @@ model ScheduleRule {
   maxDaysPerWeek        Int     @default(5)
   patternCooldownDays   Int     @default(5)
   warmupCooldownEnabled Boolean @default(false) // Feature #63 opt-in
+  // Whether reaching a WOD's time cap stops the clock and ends the session.
+  // Defaults true because that is how the timer is meant to run; this is an
+  // opt-out for an athlete who'd rather keep moving past the cap and stop it
+  // themselves. Snapshotted onto each WorkoutSession at start, so flipping it
+  // never changes the rules under a workout already in progress.
+  autoStopAtCapEnabled  Boolean @default(true)
 }
 
 model DailyAssignment {
@@ -175,6 +181,12 @@ model WorkoutSession {
   status            String          @default("in_progress") // in_progress | completed | abandoned
   finishedAtSeconds Int? // elapsed time when "Finish" was tapped — the natural score for a For Time WOD
   roundSplitCount   Int? // optional user-chosen round count to break high-rep movements into; null = unsplit
+  // Whether this session's clock stops at capSeconds, copied from
+  // ScheduleRule.autoStopAtCapEnabled when the session starts. Snapshotted for
+  // the same reason capSeconds is: a workout runs under the rules it began
+  // with, and every read of them (the screen's clock, the finish time, the
+  // past-cap round guard) then costs no extra lookup.
+  autoStopAtCap     Boolean @default(true)
 
   // Feature #63 — stamped when each checklist is finished; read later for stats.
   warmupCompletedAt   DateTime?

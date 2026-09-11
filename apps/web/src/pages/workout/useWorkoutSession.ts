@@ -53,6 +53,17 @@ export function useWorkoutSession(assignmentId: string) {
     },
   });
 
+  /**
+   * Stopping at the time cap is a finish like any other, minus the navigation:
+   * the athlete didn't ask to leave the screen, and a capped workout usually
+   * has a last round to read off it before logging. Reaching the cap posts
+   * this; the screen then shows the clock stopped and offers LOG RESULT.
+   */
+  const stopAtCapMutation = useMutation({
+    mutationFn: () => api.finishSession(assignmentId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today"] }),
+  });
+
   const cancelMutation = useMutation({
     mutationFn: () => api.cancelSession(assignmentId),
     onSuccess: async () => {
@@ -68,6 +79,7 @@ export function useWorkoutSession(assignmentId: string) {
     isFinished,
     finish: () => finishMutation.mutate(),
     finishPending: finishMutation.isPending,
+    stopAtCap: () => stopAtCapMutation.mutate(),
     cancel: () => cancelMutation.mutate(),
     cancelPending: cancelMutation.isPending,
   };

@@ -1,37 +1,50 @@
 import { useState } from "react";
 
-/** The CANCEL / FINISH bar and its confirmation sheet — identical on every workout format. */
+/**
+ * The CANCEL / FINISH bar and its confirmation sheet — identical on every
+ * workout format.
+ *
+ * `stopped` means the clock has already been stopped (the athlete finished, or
+ * the time cap did it for them). The workout is recorded at that point, so
+ * there is nothing left to cancel and only the way on to the log.
+ */
 export function WorkoutChrome({
   onFinish,
   finishPending,
   onCancel,
   cancelPending,
+  stopped = false,
 }: {
   onFinish: () => void;
   finishPending: boolean;
   onCancel: () => void;
   cancelPending: boolean;
+  stopped?: boolean;
 }) {
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   return (
     <>
       <div className="flex items-center justify-between px-5 pt-5">
-        <button
-          onClick={() => setCancelConfirmOpen(true)}
-          disabled={cancelPending}
-          className="text-[11px] font-semibold tracking-[0.14em]"
-          style={{ color: "var(--danger)", fontFamily: "var(--font-mono)" }}
-        >
-          CANCEL
-        </button>
+        {stopped ? (
+          <span aria-hidden="true" />
+        ) : (
+          <button
+            onClick={() => setCancelConfirmOpen(true)}
+            disabled={cancelPending}
+            className="text-[11px] font-semibold tracking-[0.14em]"
+            style={{ color: "var(--danger)", fontFamily: "var(--font-mono)" }}
+          >
+            CANCEL
+          </button>
+        )}
         <button
           onClick={onFinish}
           disabled={finishPending}
           className="text-sm font-bold tracking-[0.14em]"
           style={{ color: "var(--glow)", fontFamily: "var(--font-mono)" }}
         >
-          FINISH
+          {stopped ? "LOG RESULT" : "FINISH"}
         </button>
       </div>
 

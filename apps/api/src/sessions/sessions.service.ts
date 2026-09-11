@@ -9,7 +9,11 @@ import type {
   WodType,
   WorkoutSession,
 } from '@wod-engine/shared';
-import { hasRepScheme, resolveIntervalConfig } from '@wod-engine/shared';
+import {
+  finishSecondsAt,
+  hasRepScheme,
+  resolveIntervalConfig,
+} from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { toRoundSplits, toSessionDto } from './session.mapper';
 import { advanceInterval, mergeRoundSplit } from './session.logic';
@@ -33,6 +37,14 @@ export class SessionsService {
     if (!assignment.wod)
       throw new BadRequestException('Rest days have no workout to start');
 
+    // Read once here and copied onto the session, exactly like capSeconds: the
+    // workout runs under the rules it started with, so toggling the setting
+    // mid-session can't change where its clock stops. Absent row means the
+    // column default, which is on.
+    const rule = await this.prisma.scheduleRule.findUnique({
+      where: { userId },
+    });
+
     const session = await this.prisma.workoutSession.upsert({
       where: { assignmentId },
       update: {},
@@ -40,6 +52,7 @@ export class SessionsService {
         assignmentId,
         userId,
         capSeconds: assignment.wod.timeCapMinutes * 60,
+        autoStopAtCap: rule?.autoStopAtCapEnabled ?? true,
         roundSplits: [],
         status: 'in_progress',
       },
@@ -77,6 +90,16 @@ export class SessionsService {
       throw new NotFoundException('No active session for this assignment');
     if (session.status !== 'in_progress') {
       throw new BadRequestException('Session is no longer in progress');
+    }
+
+    // Where the cap binds, the clock stops there, so there is no such second
+    // to have tapped in. The screen swaps its round button out when the cap
+    // lands; this is the same rule for a client that hasn't caught up with it
+    // yet. With the opt-out the clock runs on, and so do the rounds.
+    if (session.autoStopAtCap && round.atSeconds > session.capSeconds) {
+      throw new BadRequestException(
+        `Round ${round.round} is past this workout's time cap`,
+      );
     }
 
     const splits = toRoundSplits(session.roundSplits);
@@ -174,6 +197,10 @@ export class SessionsService {
     return toSessionDto(updated);
   }
 
+  /**
+   * Ends the session, whether the athlete tapped FINISH or the time cap
+   * stopped the clock for them — the screen posts the same call either way.
+   */
   async finish(userId: string, assignmentId: string): Promise<WorkoutSession> {
     const session = await this.prisma.workoutSession.findFirst({
       where: { assignmentId, userId },
@@ -181,9 +208,19 @@ export class SessionsService {
     if (!session)
       throw new NotFoundException('No active session for this assignment');
 
-    const finishedAtSeconds = Math.round(
-      (Date.now() - session.startedAt.getTime()) / 1000,
-    );
+    // Already stopped — the cap ended it, or a FINISH tap did. The first stop
+    // is the real one, so this is a no-op rather than a second finish that
+    // would overwrite the recorded time with a later one.
+    if (session.status === 'completed') return toSessionDto(session);
+
+    // Clamped to the cap rather than taken raw off the wall clock: a tap that
+    // lands after the cap (a locked phone, a tab woken up late) scores the cap,
+    // which is where the athlete's clock stopped. With the opt-out there was no
+    // stop to score, so the wall clock is the honest answer.
+    const elapsedSeconds = (Date.now() - session.startedAt.getTime()) / 1000;
+    const finishedAtSeconds = session.autoStopAtCap
+      ? finishSecondsAt(elapsedSeconds, session.capSeconds)
+      : Math.floor(elapsedSeconds);
 
     const updated = await this.prisma.workoutSession.update({
       where: { assignmentId },

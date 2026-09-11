@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AdvanceInterval, IntervalConfig, Wod, WorkoutSession } from "@wod-engine/shared";
 import { api } from "../../lib/api";
 import { InstructionsCaret, InstructionsPeek } from "../../components/MovementInstructions";
-import { formatClock } from "../../lib/clock";
+import { elapsedSecondsSince, formatClock } from "../../lib/clock";
 import {
   countdownTickCue,
   restStartCue,
@@ -39,6 +39,9 @@ export function IntervalWorkout({
   session,
   config,
   isFinished,
+  onFinish,
+  finishPending,
+  stopAtCap,
   chrome,
 }: {
   assignmentId: string;
@@ -46,6 +49,9 @@ export function IntervalWorkout({
   session: WorkoutSession;
   config: IntervalConfig;
   isFinished: boolean;
+  onFinish: () => void;
+  finishPending: boolean;
+  stopAtCap: () => void;
   chrome: React.ReactElement<typeof WorkoutChrome>;
 }) {
   const queryClient = useQueryClient();
@@ -58,8 +64,11 @@ export function IntervalWorkout({
   });
 
   const cycleSeconds = config.workSeconds + config.restSeconds;
-  const startedAtMs = new Date(session.startedAt).getTime();
-  const elapsedSeconds = Math.max(0, Math.floor((now - startedAtMs) / 1000));
+  // Uncapped on purpose, unlike the round-tap screen's clock: the sequence is
+  // this format's cap, and it's anchored to the START tap rather than to the
+  // session, so a late start can legitimately carry the last interval past
+  // `capSeconds`. Stopping the clock there would cut the workout short.
+  const elapsedSeconds = elapsedSecondsSince(session.startedAt, now);
 
   const savedIndex = session.intervalIndex;
   const savedStart = session.intervalStartedAtSeconds;
@@ -85,6 +94,29 @@ export function IntervalWorkout({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.index, savedIndex, originSeconds, isFinished]);
+
+  // The sequence running out is where an EMOM/Tabata's time cap lands, so the
+  // clock stops there rather than leaving the session running behind the "all
+  // intervals done" panel. Gated on the *saved* index rather than the local
+  // one so the final rollover is persisted first — a finished session takes no
+  // further writes, and that last interval is a round split worth keeping.
+  //
+  // Skipped entirely for a session started with the auto-stop off: the panel
+  // then waits for a FINISH tap, as it did before the stop existed.
+  const autoStop = session.autoStopAtCap;
+  const stoppedAtCapRef = useRef(false);
+  useEffect(() => {
+    stoppedAtCapRef.current = false;
+  }, [session.id]);
+  useEffect(() => {
+    if (isFinished || stoppedAtCapRef.current || !autoStop) return;
+    if (savedIndex === null || savedIndex < config.intervalCount) return;
+    if (advanceMutation.isPending) return;
+
+    stoppedAtCapRef.current = true;
+    stopAtCap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedIndex, config.intervalCount, autoStop, isFinished, advanceMutation.isPending]);
 
   // One cue per transition. The first pass only records where we are — on a
   // refresh mid-interval there's no transition to announce.
@@ -174,7 +206,12 @@ export function IntervalWorkout({
           onPeek={setPeekMovementId}
         />
       ) : state.isComplete ? (
-        <CompletePanel intervalCount={config.intervalCount} />
+        <CompletePanel
+          intervalCount={config.intervalCount}
+          autoStop={autoStop}
+          onFinish={onFinish}
+          finishPending={finishPending}
+        />
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="px-5 pt-6 text-center">
@@ -413,7 +450,17 @@ function ReadyPanel({
   );
 }
 
-function CompletePanel({ intervalCount }: { intervalCount: number }) {
+function CompletePanel({
+  intervalCount,
+  autoStop,
+  onFinish,
+  finishPending,
+}: {
+  intervalCount: number;
+  autoStop: boolean;
+  onFinish: () => void;
+  finishPending: boolean;
+}) {
   return (
     <div className="flex flex-1 flex-col justify-center px-5 py-10 text-center">
       <div
@@ -423,8 +470,16 @@ function CompletePanel({ intervalCount }: { intervalCount: number }) {
         All intervals done
       </div>
       <p className="mt-3 text-sm" style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
-        {intervalCount} / {intervalCount} COMPLETE — TAP FINISH TO LOG IT
+        {intervalCount} / {intervalCount} COMPLETE — {autoStop ? "CLOCK STOPPED" : "TAP TO LOG IT"}
       </p>
+      <button
+        onClick={onFinish}
+        disabled={finishPending}
+        className="mt-6 w-full py-6 text-lg font-bold tracking-[0.2em]"
+        style={{ background: "var(--glow)", color: "var(--bg)", fontFamily: "var(--font-mono)" }}
+      >
+        LOG RESULT
+      </button>
     </div>
   );
 }

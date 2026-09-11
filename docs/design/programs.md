@@ -89,9 +89,10 @@ library hole gets noticed.
 `Plan.scheduleMode` decides whether the cadence screen is an input or a
 readout.
 
-- **`flexible`** carries `minDaysPerWeek`/`maxDaysPerWeek` and a default. The
-  athlete picks inside that range, which writes the existing
-  `ScheduleRule.maxDaysPerWeek` — no new field.
+- **`flexible`** carries `minDaysPerWeek`/`maxDaysPerWeek` and a default set
+  of days. The athlete taps which weekdays they train, and the count is
+  derived from that rather than entered separately — see
+  [Training days are a calendar](#training-days-are-a-calendar).
 - **`fixed`** carries none of them. The slot layout *is* the schedule, so
   days-per-week is just a count of its non-rest slots. This lets a program
   insist on *spacing*, not merely frequency — heavy pull days wanting 48
@@ -104,6 +105,42 @@ null; `flexible` ⇒ both non-null.
 at fewer days than it was authored for — without it, dropping from 5 days to
 3 removes whichever days happen to fall last in the week, which could delete
 the program's main session.
+
+### Training days are a calendar
+
+The athlete picks *which* weekdays they train; "days per week" is the count
+of what they picked, never an input of its own. Showing both a count and a
+week strip would be two controls for one fact, with only one of them real.
+
+This is a change in kind. `ScheduleRule.maxDaysPerWeek` is a pure quota today
+and `isRestDay` only asks whether the week's allowance is spent — the app has
+no notion of *which* days at all. Add `ScheduleRule.trainingDays` and that
+check becomes a weekday lookup.
+
+It also removes an inconsistency rather than adding one: fixed programs
+already declare specific weekdays, so having flexible programs think in
+counts left the two halves of the model speaking different languages.
+
+Two consequences:
+
+- **`PlanSlot.dayOfWeek` is a calendar weekday**, not an offset from the
+  enrollment start. The two can't coexist — a Mon/Tue/Thu/Fri program is
+  meaningless if week 1 begins on a Wednesday. Program weeks therefore align
+  to calendar weeks, matching `getWeekRange`'s existing Mon–Sun.
+- **`resolveSlotForDate` gets simpler**: full weeks elapsed since the start
+  date's week, then a weekday lookup. No modulo arithmetic. Starting
+  mid-week gives a short first week, whose earlier days fall back to Just
+  WODs like any other pre-start day — which is why the date picker marks
+  Mondays.
+
+Losing the quota loses its forgiveness: miss a Wednesday and there's no
+spare day left in the week to absorb it. That's the honest trade for a
+schedule you can predict, and it's consistent with the program owning the
+calendar — a missed day is missed, not slid.
+
+`PlanSlot.priority` now does real work here: a flexible program authored for
+5 days and run at 3 assigns its highest-priority slots to the days the
+athlete picked, in week order.
 
 ### Length scales by repeating the core block
 
@@ -138,18 +175,18 @@ end on a light week.
 ### Date → slot
 
 Keep **lazy** materialization: enrolling writes no assignments, and
-`getToday` still creates one row on demand. `resolveSlotForDate` is anchored
-to the enrollment start date, not the calendar Monday:
+`getToday` still creates one row on demand.
 
 ```
-dayIndex  = daysBetween(enrollment.startDate, date)
-weekIndex = floor(dayIndex / 7)
-dayOfWeek = dayIndex % 7
+weekIndex = full weeks elapsed since the start date's week
+dayOfWeek = the date's calendar weekday
+slot      = expandedWeeks[weekIndex].slots[dayOfWeek]
 ```
 
-Starting a program on a Wednesday then gives you day 1 immediately instead of
-a stub half-week. Plan weeks no longer align with `getWeekRange`'s Mon–Sun,
-which is fine — the program owns the calendar.
+Program weeks align to calendar weeks (`getWeekRange`'s existing Mon–Sun),
+because both fixed programs and athlete-chosen training days are expressed in
+calendar weekdays. A mid-week start gives a short first week; the days before
+it fall back to Just WODs like any other pre-start day.
 
 Both functions are pure (repo style: `apps/api/src/plans/*.logic.ts` with
 specs alongside, mirroring `scheduler.logic.ts`), so the same code powers a
@@ -229,13 +266,14 @@ Scoping every Stats chart to a program stays out of scope. `enrollmentId` on
 
 | Setting | Behaviour |
 |---|---|
-| `maxDaysPerWeek` | Written by a flexible program's cadence step. **Overridden** by a fixed program — Settings should show it paused, with the reason, rather than accepting a number that silently does nothing. |
+| `trainingDays` | Written by a flexible program's cadence step. **Overridden** by a fixed program — Settings should show it paused, with the reason, rather than accepting days that silently do nothing. Replaces `maxDaysPerWeek` as what the scheduler reads. |
 | `patternCooldownDays` | **Soft only** — a preference inside a slot's filtered pool, so a "pull 3x/week" program doesn't starve itself. |
 | `warmupCooldownEnabled` | Unchanged. |
 | `autoStopAtCapEnabled` | Unchanged, still snapshotted onto the session. |
 
-`isRestDay(assignedDaysThisWeek, maxDaysPerWeek)` isn't consulted on a program
-day; the slot's `kind === 'rest'` answers it.
+`isRestDay(assignedDaysThisWeek, maxDaysPerWeek)` goes away in its current
+form: on a program day the slot's `kind === 'rest'` answers it, and on a
+Just WODs day it's a `trainingDays` lookup.
 
 ## 2. Athlete-owned progression
 

@@ -10,10 +10,10 @@ rewrite.
 30-minute-cap scheduler; an in-workout stopwatch + tap-to-log round
 tracker (AMRAP/For Time) and an auto-advancing interval timer
 (EMOM/Tabata), both with sound + vibration cues and both stopping
-themselves at the WOD's time cap; logging results pre-filled from the
-tracked session; history and PRs. As originally scoped this ran
-entirely on localhost with SQLite; the database is now Postgres (#39)
-and a hosted deploy exists.
+themselves at the WOD's time cap unless the athlete turns that off;
+logging results pre-filled from the tracked session; history and PRs.
+As originally scoped this ran entirely on localhost with SQLite; the
+database is now Postgres (#39) and a hosted deploy exists.
 
 **Out (for now):** accounts/auth, hosted deployment, weighted/equipment-
 heavy movements, and iOS/Android apps. See the GitHub Project (linked
@@ -39,9 +39,9 @@ seeded exercise pool (24 movements) and WOD library (11 WODs).
 |---|---|---|
 | `Exercise` | pattern, needsBar, scalable, altExerciseId | The movement pool; `altExerciseId` is the no-equipment substitute. |
 | `Wod` | type, timeCapMinutes, movements, isNamed, dominantPattern, work/rest seconds + intervalCount | A reusable workout definition; the interval fields drive the EMOM/Tabata timer. |
-| `ScheduleRule` | maxDaysPerWeek, patternCooldownDays | Config the scheduler reads. |
+| `ScheduleRule` | maxDaysPerWeek, patternCooldownDays, warm-up/cool-down + auto-stop toggles | Config the scheduler reads, plus the preferences the Settings screen writes. |
 | `DailyAssignment` | date, wodId, status | "Today's WOD" — scheduled → in_progress → completed. |
-| `WorkoutSession` | startedAt, capSeconds, roundSplits, status, intervalIndex | The live timer's state, autosaved on every round tap and every interval rollover. The clock stops at `capSeconds` — reaching it finishes the session rather than counting on. |
+| `WorkoutSession` | startedAt, capSeconds, autoStopAtCap, roundSplits, status, intervalIndex | The live timer's state, autosaved on every round tap and every interval rollover. The clock stops at `capSeconds` — reaching it finishes the session rather than counting on — unless `autoStopAtCap`, snapshotted from the athlete's setting at start, says otherwise. |
 | `WorkoutLog` | resultType, resultValue, rpe, notes | What actually happened — pre-filled from the finished session. |
 | `User` | id | v1 stub; unlocks multi-user/auth later without a migration. |
 

@@ -45,8 +45,12 @@ export function RoundTapWorkout({
   const queryClient = useQueryClient();
   const now = useNow(1000, !isFinished);
 
-  // The clock the whole screen reads: elapsed time, stopped at the cap.
+  // The clock the whole screen reads. `autoStopAtCap` is the athlete's setting
+  // as it stood when this session started, so it decides whether the cap is a
+  // boundary or only a marker the clock runs past.
   const cap = capStateAt(elapsedSecondsSince(session.startedAt, now), session.capSeconds);
+  const autoStop = session.autoStopAtCap;
+  const isCapStopped = autoStop && cap.isCapped;
 
   const logRoundMutation = useMutation({
     mutationFn: (round: { round: number; atSeconds: number }) => api.logRound(assignmentId, round),
@@ -58,22 +62,25 @@ export function RoundTapWorkout({
   // what freezes this readout (`isFinished` stops the ticker) and releases the
   // wake lock. Cues once and posts once — the ref holds across the second or
   // two before the finish comes back through the query.
-  const stoppedAtCapRef = useRef(false);
+  //
+  // With the opt-out the cue is all the cap does, which is where this screen
+  // stood before the auto-stop: the clock runs on and the athlete taps FINISH.
+  const capReachedRef = useRef(false);
   useEffect(() => {
-    stoppedAtCapRef.current = false;
+    capReachedRef.current = false;
   }, [session.id]);
   useEffect(() => {
-    if (isFinished || stoppedAtCapRef.current || !cap.isCapped) return;
+    if (isFinished || capReachedRef.current || !cap.isCapped) return;
     // A round tapped inside the cap's last second still counts, so let it
     // land first — the API rejects a split posted after the session is
     // finished, and that tap is the one the athlete just earned.
-    if (logRoundMutation.isPending) return;
+    if (autoStop && logRoundMutation.isPending) return;
 
-    stoppedAtCapRef.current = true;
+    capReachedRef.current = true;
     capReachedCue();
-    stopAtCap();
+    if (autoStop) stopAtCap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cap.isCapped, isFinished, logRoundMutation.isPending]);
+  }, [cap.isCapped, autoStop, isFinished, logRoundMutation.isPending]);
 
   const splitMutation = useMutation({
     mutationFn: (roundSplitCount: number | null) => api.setRoundSplit(assignmentId, { roundSplitCount }),
@@ -89,8 +96,9 @@ export function RoundTapWorkout({
   const [splitInput, setSplitInput] = useState(5);
 
   // Splits are stamped with the clock, not the wall clock, so nothing is
-  // logged at a second the athlete never saw.
-  const elapsedSeconds = cap.clockSeconds;
+  // logged at a second the athlete never saw — which past the cap is the cap
+  // itself, unless the athlete opted out of stopping there.
+  const elapsedSeconds = autoStop ? cap.clockSeconds : cap.elapsedSeconds;
   const progress = Math.min(1, elapsedSeconds / session.capSeconds);
   const splits = [...session.roundSplits].sort((a, b) => b.round - a.round);
   const currentRound = session.roundSplits.length + 1;
@@ -114,8 +122,9 @@ export function RoundTapWorkout({
   // button becomes the one thing left to do. `isFinished` joins it there —
   // a session finished early is just as stopped — but keeps the clock's own
   // colour, since finishing the work is not the same as running out of time.
-  const isStopped = cap.isCapped || isFinished;
-  const clockColor = cap.isCapped ? "var(--danger)" : "var(--glow)";
+  // A clock still running past the cap stays lit; only its label goes red.
+  const isStopped = isCapStopped || isFinished;
+  const clockColor = isCapStopped ? "var(--danger)" : "var(--glow)";
 
   function handleRoundComplete() {
     roundCompleteCue();
@@ -141,7 +150,7 @@ export function RoundTapWorkout({
             fontVariantNumeric: "tabular-nums",
             fontFamily: "var(--font-mono)",
             color: clockColor,
-            textShadow: cap.isCapped
+            textShadow: isCapStopped
               ? "0 0 16px var(--danger-tint)"
               : "0 0 16px var(--glow-tint), 0 0 3px var(--glow)",
           }}
@@ -154,7 +163,7 @@ export function RoundTapWorkout({
             style={{
               width: `${progress * 100}%`,
               background: clockColor,
-              boxShadow: cap.isCapped ? "none" : "0 0 8px var(--glow)",
+              boxShadow: isCapStopped ? "none" : "0 0 8px var(--glow)",
             }}
           />
         </div>
@@ -162,9 +171,7 @@ export function RoundTapWorkout({
           className="mt-1.5 text-[11px] font-semibold tracking-[0.14em]"
           style={{ color: cap.isCapped ? "var(--danger)" : "var(--ink-faint)", fontFamily: "var(--font-mono)" }}
         >
-          {cap.isCapped
-            ? `TIME CAP ${formatClock(session.capSeconds)} — CLOCK STOPPED`
-            : `CAP ${formatClock(session.capSeconds)}`}
+          {capLabel(session.capSeconds, cap.isCapped, autoStop)}
         </div>
       </div>
 
@@ -401,6 +408,17 @@ export function RoundTapWorkout({
       )}
     </div>
   );
+}
+
+/**
+ * The line under the progress bar: the cap ahead, the cap that stopped the
+ * clock, or — with the auto-stop off — the cap the athlete has run past and is
+ * now working beyond.
+ */
+function capLabel(capSeconds: number, isCapped: boolean, autoStop: boolean): string {
+  const cap = formatClock(capSeconds);
+  if (!isCapped) return `CAP ${cap}`;
+  return autoStop ? `TIME CAP ${cap} — CLOCK STOPPED` : `CAP ${cap} — PASSED`;
 }
 
 /** "21-15-9" — the ladder's shape, shown where the SPLIT control would be. */

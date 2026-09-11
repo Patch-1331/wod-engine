@@ -48,15 +48,29 @@ describe("finishSecondsAt", () => {
 });
 
 describe("wasCappedFinish", () => {
+  const stopping = { capSeconds: CAP, autoStopAtCap: true };
+
   it("is true for a session the cap stopped", () => {
-    expect(wasCappedFinish({ capSeconds: CAP, finishedAtSeconds: CAP })).toBe(true);
+    expect(wasCappedFinish({ ...stopping, finishedAtSeconds: CAP })).toBe(true);
   });
 
   it("is false for a session that finished its work in time", () => {
-    expect(wasCappedFinish({ capSeconds: CAP, finishedAtSeconds: CAP - 1 })).toBe(false);
+    expect(wasCappedFinish({ ...stopping, finishedAtSeconds: CAP - 1 })).toBe(false);
   });
 
   it("is false for a session still running", () => {
-    expect(wasCappedFinish({ capSeconds: CAP, finishedAtSeconds: null })).toBe(false);
+    expect(wasCappedFinish({ ...stopping, finishedAtSeconds: null })).toBe(false);
+  });
+
+  it("is false with the auto-stop off, however long the session ran", () => {
+    // Nothing stopped this clock: the athlete ran past the cap by choice, so
+    // 22:00 is their real finish time and not a cap.
+    expect(
+      wasCappedFinish({
+        capSeconds: CAP,
+        autoStopAtCap: false,
+        finishedAtSeconds: CAP + 120,
+      }),
+    ).toBe(false);
   });
 });

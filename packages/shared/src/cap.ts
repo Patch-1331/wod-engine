@@ -10,6 +10,10 @@
  * This module is the one place that decides where "stopped" is. The workout
  * screen freezes its readout with it and the API records a finish with it, so
  * the number the athlete last saw is the number that gets logged.
+ *
+ * An athlete can opt out (`Settings.autoStopAtCapEnabled`), which every caller
+ * reads off the session's own `autoStopAtCap` rather than from here: the cap
+ * arithmetic is the same either way, and only whether it *binds* changes.
  */
 
 /** A session's clock, as far as the cap is concerned. */
@@ -58,18 +62,22 @@ export function finishSecondsAt(
 }
 
 /**
- * Whether a finished session ran out of time rather than finishing its work —
- * the difference between a For Time result that's a completion time and one
- * that's a cap.
+ * Whether a finished session was stopped by the cap rather than finishing its
+ * work — the difference between a For Time result that's a completion time and
+ * one that's a cap.
  *
- * Derived rather than stored: the clock stops at the cap, so a finish at the
- * cap is the only way to reach it.
+ * Derived rather than stored: where the cap binds, the clock stops there, so a
+ * finish at the cap is the only way to reach it. A session running with the
+ * opt-out is never "capped" however long it ran — the athlete owned the clock
+ * and the time they finished at is their real one.
  */
 export function wasCappedFinish(session: {
   capSeconds: number;
   finishedAtSeconds: number | null;
+  autoStopAtCap: boolean;
 }): boolean {
   return (
+    session.autoStopAtCap &&
     session.finishedAtSeconds !== null &&
     session.finishedAtSeconds >= session.capSeconds
   );

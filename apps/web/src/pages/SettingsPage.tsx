@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UpdateSettings } from "@wod-engine/shared";
 import { api } from "../lib/api";
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const { data: settings, isLoading, error } = useQuery({ queryKey: ["settings"], queryFn: api.settings });
 
+  // One mutation for every toggle: the PATCH carries only the switch that was
+  // flipped, so the others keep whatever the server has for them.
   const toggleMutation = useMutation({
-    mutationFn: (warmupCooldownEnabled: boolean) => api.updateSettings({ warmupCooldownEnabled }),
+    mutationFn: (patch: UpdateSettings) => api.updateSettings(patch),
     onSuccess: async (updated) => {
       queryClient.setQueryData(["settings"], updated);
       await queryClient.invalidateQueries({ queryKey: ["today"] });
@@ -23,22 +26,54 @@ export function SettingsPage() {
       {error && <p className="mt-3 text-[var(--danger)]">Couldn't reach the API — is it running on :3001?</p>}
 
       {settings && (
-        <div className="mt-5 flex items-center justify-between gap-4 p-4" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
-          <div>
-            <p className="font-semibold uppercase" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>
-              Warm-up / cool-down
-            </p>
-            <p className="mt-1 text-xs text-[var(--ink-faint)]">
-              Show a short checklist before and after each workout.
-            </p>
-          </div>
-          <ToggleSwitch
+        <div className="mt-5 flex flex-col gap-3">
+          <SettingRow
+            title="Warm-up / cool-down"
+            description="Show a short checklist before and after each workout."
             checked={settings.warmupCooldownEnabled}
-            disabled={toggleMutation.isPending}
-            onChange={(checked) => toggleMutation.mutate(checked)}
+            pending={toggleMutation.isPending}
+            onChange={(warmupCooldownEnabled) => toggleMutation.mutate({ warmupCooldownEnabled })}
           />
+          <SettingRow
+            title="Stop at the time cap"
+            description="End the workout when its time cap runs out. Turn this off to keep the clock running past the cap and finish it yourself."
+            checked={settings.autoStopAtCapEnabled}
+            pending={toggleMutation.isPending}
+            onChange={(autoStopAtCapEnabled) => toggleMutation.mutate({ autoStopAtCapEnabled })}
+          />
+          {/* A workout already under way keeps the rule it started with, so
+              say so rather than leaving the athlete to find out at the cap. */}
+          <p className="text-[11px] text-[var(--ink-faint)]">
+            A change takes effect on your next workout — one already in progress keeps the setting it started with.
+          </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function SettingRow({
+  title,
+  description,
+  checked,
+  pending,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  pending: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 p-4" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
+      <div>
+        <p className="font-semibold uppercase" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>
+          {title}
+        </p>
+        <p className="mt-1 text-xs text-[var(--ink-faint)]">{description}</p>
+      </div>
+      <ToggleSwitch checked={checked} disabled={pending} onChange={onChange} />
     </div>
   );
 }

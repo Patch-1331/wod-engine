@@ -100,19 +100,23 @@ export function IntervalWorkout({
   // intervals done" panel. Gated on the *saved* index rather than the local
   // one so the final rollover is persisted first — a finished session takes no
   // further writes, and that last interval is a round split worth keeping.
+  //
+  // Skipped entirely for a session started with the auto-stop off: the panel
+  // then waits for a FINISH tap, as it did before the stop existed.
+  const autoStop = session.autoStopAtCap;
   const stoppedAtCapRef = useRef(false);
   useEffect(() => {
     stoppedAtCapRef.current = false;
   }, [session.id]);
   useEffect(() => {
-    if (isFinished || stoppedAtCapRef.current) return;
+    if (isFinished || stoppedAtCapRef.current || !autoStop) return;
     if (savedIndex === null || savedIndex < config.intervalCount) return;
     if (advanceMutation.isPending) return;
 
     stoppedAtCapRef.current = true;
     stopAtCap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedIndex, config.intervalCount, isFinished, advanceMutation.isPending]);
+  }, [savedIndex, config.intervalCount, autoStop, isFinished, advanceMutation.isPending]);
 
   // One cue per transition. The first pass only records where we are — on a
   // refresh mid-interval there's no transition to announce.
@@ -204,6 +208,7 @@ export function IntervalWorkout({
       ) : state.isComplete ? (
         <CompletePanel
           intervalCount={config.intervalCount}
+          autoStop={autoStop}
           onFinish={onFinish}
           finishPending={finishPending}
         />
@@ -447,10 +452,12 @@ function ReadyPanel({
 
 function CompletePanel({
   intervalCount,
+  autoStop,
   onFinish,
   finishPending,
 }: {
   intervalCount: number;
+  autoStop: boolean;
   onFinish: () => void;
   finishPending: boolean;
 }) {
@@ -463,7 +470,7 @@ function CompletePanel({
         All intervals done
       </div>
       <p className="mt-3 text-sm" style={{ color: "var(--ink-soft)", fontFamily: "var(--font-mono)" }}>
-        {intervalCount} / {intervalCount} COMPLETE — CLOCK STOPPED
+        {intervalCount} / {intervalCount} COMPLETE — {autoStop ? "CLOCK STOPPED" : "TAP TO LOG IT"}
       </p>
       <button
         onClick={onFinish}

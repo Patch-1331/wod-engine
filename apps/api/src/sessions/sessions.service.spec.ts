@@ -23,6 +23,7 @@ function prismaWith(movements: { reps: number; repScheme: number[] }[]) {
       status: 'in_progress',
       finishedAtSeconds: null,
       roundSplitCount: null,
+      autoStopAtCap: true,
       warmupCompletedAt: null,
       cooldownCompletedAt: null,
       intervalIndex: null,
@@ -99,6 +100,7 @@ function prismaWithSession(overrides: {
   startedAt: Date;
   status?: string;
   finishedAtSeconds?: number | null;
+  autoStopAtCap?: boolean;
 }) {
   const session = {
     id: 'session-1',
@@ -110,6 +112,7 @@ function prismaWithSession(overrides: {
     status: overrides.status ?? 'in_progress',
     finishedAtSeconds: overrides.finishedAtSeconds ?? null,
     roundSplitCount: null,
+    autoStopAtCap: overrides.autoStopAtCap ?? true,
     warmupCompletedAt: null,
     cooldownCompletedAt: null,
     intervalIndex: null,
@@ -168,6 +171,22 @@ describe('SessionsService.finish', () => {
     expect(session.finishedAtSeconds).toBe(CAP_SECONDS);
   });
 
+  it('records the wall clock past the cap when the athlete opted out', async () => {
+    // Nothing stopped this clock, so there is no cap to score — 25:00 is the
+    // time they actually finished at.
+    const { prisma } = prismaWithSession({
+      startedAt: secondsAgo(CAP_SECONDS + 300),
+      autoStopAtCap: false,
+    });
+
+    const session = await new SessionsService(prisma).finish(
+      ALICE,
+      'assignment-1',
+    );
+
+    expect(session.finishedAtSeconds).toBe(CAP_SECONDS + 300);
+  });
+
   it('leaves an already-finished session alone', async () => {
     // The cap finishes the session itself, and the screen still offers the
     // tap that leads to the log. That tap must not restamp the time.
@@ -213,5 +232,85 @@ describe('SessionsService.logRound', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('accepts a round past the cap when the athlete opted out', async () => {
+    // The point of the opt-out: the clock runs on, and so do the rounds.
+    const { prisma, update } = prismaWithSession({
+      startedAt: secondsAgo(CAP_SECONDS + 60),
+      autoStopAtCap: false,
+    });
+
+    await new SessionsService(prisma).logRound(ALICE, 'assignment-1', {
+      round: 1,
+      atSeconds: CAP_SECONDS + 30,
+    });
+
+    expect(update).toHaveBeenCalled();
+  });
+});
+
+/**
+ * The setting is snapshotted onto the session at start, like capSeconds, so a
+ * workout runs under the rule it began with.
+ */
+describe('SessionsService.start', () => {
+  function prismaForStart(rule: { autoStopAtCapEnabled: boolean } | null) {
+    const upsert = jest.fn((args: { create: Record<string, unknown> }) =>
+      Promise.resolve({
+        id: 'session-1',
+        assignmentId: 'assignment-1',
+        userId: ALICE,
+        startedAt: new Date(),
+        capSeconds: 1200,
+        roundSplits: [],
+        status: 'in_progress',
+        finishedAtSeconds: null,
+        roundSplitCount: null,
+        autoStopAtCap: true,
+        warmupCompletedAt: null,
+        cooldownCompletedAt: null,
+        intervalIndex: null,
+        intervalStartedAtSeconds: null,
+        ...args.create,
+      }),
+    );
+
+    const prisma = {
+      dailyAssignment: {
+        findFirst: jest.fn(() =>
+          Promise.resolve({
+            id: 'assignment-1',
+            status: 'scheduled',
+            wod: { timeCapMinutes: 20 },
+          }),
+        ),
+        update: jest.fn(() => Promise.resolve({})),
+      },
+      scheduleRule: { findUnique: jest.fn(() => Promise.resolve(rule)) },
+      workoutSession: { upsert },
+    };
+
+    return { prisma: prisma as unknown as PrismaService, upsert };
+  }
+
+  it('carries the opt-out onto the session', async () => {
+    const { prisma, upsert } = prismaForStart({ autoStopAtCapEnabled: false });
+
+    const session = await new SessionsService(prisma).start(
+      ALICE,
+      'assignment-1',
+    );
+
+    expect(upsert.mock.calls[0][0].create.autoStopAtCap).toBe(false);
+    expect(session.autoStopAtCap).toBe(false);
+  });
+
+  it('stops at the cap for a user with no settings row yet', async () => {
+    const { prisma, upsert } = prismaForStart(null);
+
+    await new SessionsService(prisma).start(ALICE, 'assignment-1');
+
+    expect(upsert.mock.calls[0][0].create.autoStopAtCap).toBe(true);
   });
 });

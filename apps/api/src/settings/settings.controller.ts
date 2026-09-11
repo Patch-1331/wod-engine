@@ -15,7 +15,7 @@ export class SettingsController {
 
   @Patch()
   update(@CurrentUser() userId: string, @Body() body: unknown) {
-    const { warmupCooldownEnabled } = validateBody(updateSettingsSchema, body);
-    return this.settingsService.update(userId, warmupCooldownEnabled);
+    const patch = validateBody(updateSettingsSchema, body);
+    return this.settingsService.update(userId, patch);
   }
 }

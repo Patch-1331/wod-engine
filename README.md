@@ -7,6 +7,20 @@ without the gym membership.
 See [`docs/plan.md`](docs/plan.md) for the full plan and
 [`docs/adr/`](docs/adr) for the reasoning behind the bigger calls.
 
+## Where the work is tracked
+
+Planning lives in **[Linear](https://linear.app/wod-engine)** — the backlog,
+what's in progress, and everything not yet built.
+
+GitHub Issues is the **archive of shipped work**, kept readable because the
+code cites it: comments like `Feature #63 opt-in` in `schema.prisma` point at
+the issue that explains why a field exists. Those issues are all closed, and
+the empty backlog there means the work moved, not that the project is done.
+
+A bare `#N` in a doc, comment or commit message is a GitHub issue. Linear
+issues are always written in full (`WOD-5`) — the two numbering schemes
+overlap and mean different things, so the prefix is what tells them apart.
+
 ## Stack
 
 TypeScript monorepo (npm workspaces): NestJS + Prisma + Postgres API,

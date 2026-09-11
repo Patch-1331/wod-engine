@@ -460,7 +460,9 @@ exercise pool" — never built; `generateWodForDate` only reads existing rows.
 It stays deferred, and has its own blocker: `Wod.name` is `@unique`, so
 generated rows need disambiguated names.
 
-Tracked as #141, with a story per item below.
+Tracked as GitHub #141, and in Linear as the [Programs and athlete-owned
+progression](https://linear.app/wod-engine/project/programs-and-athlete-owned-progression-07bad6d2d79f)
+project, with a story per item below.
 
 ## Build order
 
@@ -479,7 +481,7 @@ Tracked as #141, with a story per item below.
 - **Phase 4 — the `movements` day.** Third runner, `WorkoutSetLog`, History
   and Stats shapes.
 - **Phase 5 — content.** Library expansion, then 2–3 real programs.
-- **Later** — program editor (#17), in-program intensity
+- **Later** — program editor (GitHub #17), in-program intensity
   progression, the template generator.
 
 ## Open questions
@@ -488,8 +490,9 @@ Everything that shaped the model is settled. What's left is scoped work,
 deliberately deferred:
 
 1. **Program editor** — authoring your own weeks. The same unbuilt work
-   already tracked as #17, and the reason `Plan` is seeded library content
-   for now.
+   already tracked as GitHub #17 and the Linear [Program-Editor
+   UI](https://linear.app/wod-engine/project/program-editor-ui-6c6cd0130d56)
+   project, and the reason `Plan` is seeded library content for now.
 2. **Template generator** — `docs/plan.md` describes one; it was never built,
    and `Wod.name` being `@unique` blocks generated rows until that changes.
 3. **Stats scoped to a program** — `enrollmentId` on `DailyAssignment` makes

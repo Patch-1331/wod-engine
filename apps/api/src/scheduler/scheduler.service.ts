@@ -5,6 +5,7 @@ import { toSessionDto } from '../sessions/session.mapper';
 import { WodsService } from '../wods/wods.service';
 import {
   applyCurrentRung,
+  applySubstitutions,
   getWeekRange,
   isRestDay,
   pickWod,
@@ -45,7 +46,11 @@ export class SchedulerService {
               id: existing.id,
               date: existing.date,
               status: existing.status,
-              wod: await this.scaleWodToCurrentRung(userId, existing.wod),
+              wod: await this.scaleWodToCurrentRung(
+                userId,
+                existing.id,
+                existing.wod,
+              ),
               session: existing.session ? toSessionDto(existing.session) : null,
             };
 
@@ -91,7 +96,11 @@ export class SchedulerService {
       include: { wod: { include: wodInclude } },
     });
 
-    const scaledWod = await this.scaleWodToCurrentRung(userId, created.wod!);
+    const scaledWod = await this.scaleWodToCurrentRung(
+      userId,
+      created.id,
+      created.wod!,
+    );
 
     return {
       date: today,
@@ -131,12 +140,16 @@ export class SchedulerService {
    */
   private async scaleWodToCurrentRung<
     W extends {
-      movements: { exercise: Exercise }[];
+      movements: { id: string; exercise: Exercise }[];
     },
-  >(userId: string, wod: W): Promise<W> {
-    const [skillLevels, linedExercises] = await Promise.all([
+  >(userId: string, assignmentId: string, wod: W): Promise<W> {
+    const [skillLevels, linedExercises, substitutions] = await Promise.all([
       this.prisma.skillLevel.findMany({ where: { userId } }),
       this.prisma.exercise.findMany({ where: { line: { not: null } } }),
+      this.prisma.assignmentSubstitution.findMany({
+        where: { userId, assignmentId },
+        include: { exercise: true },
+      }),
     ]);
 
     const currentRung = new Map(skillLevels.map((s) => [s.line, s.rung]));
@@ -144,9 +157,26 @@ export class SchedulerService {
       linedExercises.map((e) => [`${e.line}:${e.rung}`, e]),
     );
 
+    // The rung is what the app assigned; the swap is what the athlete chose.
+    // The athlete wins, so their layer goes on last (WOD-5).
+    const atRung = applyCurrentRung(wod.movements, currentRung, exerciseAtRung);
+    const swapped = applySubstitutions(
+      atRung,
+      new Map(substitutions.map((s) => [s.wodMovementId, s.exerciseId])),
+      new Map(substitutions.map((s) => [s.exerciseId, s.exercise])),
+    );
+
+    // Flagged rather than inferred: once a swap has been applied there is
+    // nothing left in the movement to tell it from a plain rung scaling, and
+    // the plate needs to know which rows the athlete chose themselves.
+    const swappedIds = new Set(substitutions.map((s) => s.wodMovementId));
+
     return {
       ...wod,
-      movements: applyCurrentRung(wod.movements, currentRung, exerciseAtRung),
+      movements: swapped.map((m) => ({
+        ...m,
+        isSwapped: swappedIds.has(m.id),
+      })),
     };
   }
 

@@ -5,6 +5,8 @@ import { effectiveRounds } from "@wod-engine/shared";
 import { api } from "../lib/api";
 import { DigitReadout } from "../components/DigitReadout";
 import { InstructionsCaret, InstructionsPanel } from "../components/MovementInstructions";
+import { SwapButton, SwapPanel } from "../components/MovementSwap";
+import { buildSwapOptions } from "../lib/swapOptions";
 
 export function TodayPage() {
   const navigate = useNavigate();
@@ -12,9 +14,21 @@ export function TodayPage() {
   // Which movement's instructions are open, by movement id. One at a time:
   // the plate is a briefing to read down, not a set of panels to leave open.
   const [openMovementId, setOpenMovementId] = useState<string | null>(null);
+  // The swap ladder, by movement id. Separate state from the instructions
+  // above, but only one of the two is ever open: the row is a briefing line,
+  // not a stack of drawers. Opening either closes the other.
+  const [swapMovementId, setSwapMovementId] = useState<string | null>(null);
   const { data, isLoading, error } = useQuery({
     queryKey: ["today"],
     queryFn: api.today,
+  });
+  // The ladder's rungs. Library content, the same for everyone and unchanged
+  // between visits, so it's fetched once and shared with the Stats page's
+  // cache rather than being carried on every today response.
+  const { data: exercises } = useQuery({
+    queryKey: ["exercises"],
+    queryFn: api.exercises,
+    staleTime: Infinity,
   });
 
   if (isLoading) return <p className="p-6 text-[var(--ink-faint)]">Loading today's WOD…</p>;
@@ -23,6 +37,20 @@ export function TodayPage() {
 
   async function handleSkip() {
     await api.skipToday();
+    await queryClient.invalidateQueries({ queryKey: ["today"] });
+  }
+
+  // Both close the panel first: the choice is made, and leaving the ladder
+  // open over a row that has already changed reads as though it hadn't.
+  async function handleSwap(wodMovementId: string, exerciseId: string) {
+    setSwapMovementId(null);
+    await api.setSubstitution(assignmentId, { wodMovementId, exerciseId });
+    await queryClient.invalidateQueries({ queryKey: ["today"] });
+  }
+
+  async function handleRevert(wodMovementId: string) {
+    setSwapMovementId(null);
+    await api.clearSubstitution(assignmentId, wodMovementId);
     await queryClient.invalidateQueries({ queryKey: ["today"] });
   }
 
@@ -56,7 +84,8 @@ export function TodayPage() {
   // True whenever at least one movement is on a tracked progression line
   // (Feature #2) — the scheduler already substituted every such movement
   // for the exercise at the user's current rung before this response left
-  // the API, so there's nothing left for the user to toggle or choose.
+  // the API. The badge says the plate has been fitted to the athlete, not
+  // that it's fixed: those same rows are the ones that carry a swap control.
   const isAutoScaled = wod.movements.some((m) => m.exercise.line !== null);
   // A ladder's own scheme sets the rounds — a 21-15-9 is three rounds whether
   // or not the WOD row happens to declare it.
@@ -109,53 +138,93 @@ export function TodayPage() {
             const instructions = m.exercise.instructions;
             const isOpen = openMovementId === m.id;
             const panelId = `movement-instructions-${m.id}`;
+            const swapPanelId = `movement-swap-${m.id}`;
+            const isSwapOpen = swapMovementId === m.id;
+            // Empty off a tracked line — cardio has no ladder, so that row
+            // gets no swap control rather than one that opens onto nothing.
+            const swapOptions = buildSwapOptions(
+              exercises ?? [],
+              m.exercise.line,
+              m.exercise.id,
+            );
+            const canSwap = swapOptions.length > 0;
 
-            // No copy for this movement — a plain, inert row rather than a
-            // control that opens onto nothing.
-            if (!instructions) {
-              return (
-                <div key={m.id} className="flex items-center justify-between gap-3 px-4 py-3" style={{ borderColor: "var(--border)" }}>
-                  <span className="flex min-w-0 items-center gap-2">
-                    {/* Holds the caret's place so a movement without copy
-                        still lines up with the ones that have it. */}
-                    <span aria-hidden="true" style={{ width: 12, flexShrink: 0 }} />
-                    <span className="truncate font-semibold tracking-wide text-[var(--ink-soft)]" style={{ fontFamily: "var(--font-mono)" }}>
-                      {m.exercise.name.toUpperCase()}
-                    </span>
-                  </span>
-                  <span
-                    className="text-lg font-bold"
-                    style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
-                  >
-                    {movementCount(m)}
-                  </span>
-                </div>
-              );
-            }
+            const name = (
+              <span className="truncate font-semibold tracking-wide text-[var(--ink-soft)]" style={{ fontFamily: "var(--font-mono)" }}>
+                {m.exercise.name.toUpperCase()}
+              </span>
+            );
+            const count = (
+              <span
+                className="text-lg font-bold"
+                style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
+              >
+                {movementCount(m)}
+              </span>
+            );
 
             return (
               <div key={m.id} style={{ borderColor: "var(--border)" }}>
-                <button
-                  type="button"
-                  onClick={() => setOpenMovementId(isOpen ? null : m.id)}
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <InstructionsCaret open={isOpen} />
-                    <span className="truncate font-semibold tracking-wide text-[var(--ink-soft)]" style={{ fontFamily: "var(--font-mono)" }}>
-                      {m.exercise.name.toUpperCase()}
-                    </span>
-                  </span>
-                  <span
-                    className="text-lg font-bold"
-                    style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}
-                  >
-                    {movementCount(m)}
-                  </span>
-                </button>
-                {isOpen && <InstructionsPanel id={panelId} text={instructions} />}
+                <div className="flex items-center gap-1 pr-2.5">
+                  {/* The name half keeps the instructions disclosure exactly
+                      as it was. A movement with no copy is still an inert
+                      label — but the row it sits in is no longer inert, so
+                      the two halves are separate controls rather than one. */}
+                  {instructions ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSwapMovementId(null);
+                        setOpenMovementId(isOpen ? null : m.id);
+                      }}
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      aria-label={`How to do ${m.exercise.name.toLowerCase()}`}
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3 py-3 pl-4 text-left"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <InstructionsCaret open={isOpen} />
+                        {name}
+                      </span>
+                      {count}
+                    </button>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-3 py-3 pl-4">
+                      <span className="flex min-w-0 items-center gap-2">
+                        {/* Holds the caret's place so a movement without copy
+                            still lines up with the ones that have it. */}
+                        <span aria-hidden="true" style={{ width: 12, flexShrink: 0 }} />
+                        {name}
+                      </span>
+                      {count}
+                    </div>
+                  )}
+                  {canSwap ? (
+                    <SwapButton
+                      name={m.exercise.name}
+                      open={isSwapOpen}
+                      panelId={swapPanelId}
+                      onClick={() => {
+                        setOpenMovementId(null);
+                        setSwapMovementId(isSwapOpen ? null : m.id);
+                      }}
+                    />
+                  ) : (
+                    // Holds the control's place so an unswappable row's count
+                    // still lines up with the ones that have it.
+                    <span aria-hidden="true" style={{ width: 44, flexShrink: 0 }} />
+                  )}
+                </div>
+                {isOpen && instructions && <InstructionsPanel id={panelId} text={instructions} />}
+                {isSwapOpen && (
+                  <SwapPanel
+                    id={swapPanelId}
+                    options={swapOptions}
+                    isSwapped={m.isSwapped}
+                    onPick={(exerciseId) => void handleSwap(m.id, exerciseId)}
+                    onRevert={() => void handleRevert(m.id)}
+                  />
+                )}
               </div>
             );
           })}

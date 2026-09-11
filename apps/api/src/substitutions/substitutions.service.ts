@@ -1,0 +1,121 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class SubstitutionsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Swaps one movement for this day only. An upsert rather than an insert:
+   * swapping twice corrects the choice, it doesn't stack.
+   */
+  async set(
+    userId: string,
+    assignmentId: string,
+    wodMovementId: string,
+    exerciseId: string,
+  ) {
+    const movement = await this.loadSwappableMovement(
+      userId,
+      assignmentId,
+      wodMovementId,
+    );
+    await this.assertLegalTarget(movement, exerciseId);
+
+    return this.prisma.assignmentSubstitution.upsert({
+      where: {
+        assignmentId_wodMovementId: { assignmentId, wodMovementId },
+      },
+      update: { exerciseId },
+      create: { userId, assignmentId, wodMovementId, exerciseId },
+    });
+  }
+
+  /** Puts the movement back to what the program prescribed. */
+  async clear(userId: string, assignmentId: string, wodMovementId: string) {
+    await this.loadSwappableMovement(userId, assignmentId, wodMovementId);
+    await this.prisma.assignmentSubstitution.deleteMany({
+      where: { userId, assignmentId, wodMovementId },
+    });
+  }
+
+  /**
+   * Checks the three things a swap needs: the assignment is this user's, the
+   * day is still open, and the movement is actually part of that day's WOD.
+   *
+   * A completed or skipped day is refused because the swap is a statement
+   * about what the athlete is *going* to do — rewriting it afterwards would
+   * put the record out of step with the session already logged against it.
+   */
+  private async loadSwappableMovement(
+    userId: string,
+    assignmentId: string,
+    wodMovementId: string,
+  ) {
+    const assignment = await this.prisma.dailyAssignment.findFirst({
+      where: { id: assignmentId, userId },
+      select: { id: true, status: true, wodId: true },
+    });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+
+    if (assignment.status === 'completed' || assignment.status === 'skipped') {
+      throw new BadRequestException(
+        `Cannot swap a movement on a ${assignment.status} day`,
+      );
+    }
+
+    const movement = await this.prisma.wodMovement.findFirst({
+      where: { id: wodMovementId, wodId: assignment.wodId ?? undefined },
+      include: { exercise: true },
+    });
+    if (!movement) {
+      throw new NotFoundException("Movement is not part of today's WOD");
+    }
+    return movement;
+  }
+
+  /**
+   * A swap moves along the movement's own ladder, or to its no-equipment
+   * alternative. Anything else isn't scaling, it's a different workout —
+   * and the reps stay as prescribed, so an unrelated target would leave the
+   * athlete with a rep count that means nothing.
+   *
+   * The alternative is read from every rung on the line, not just the
+   * prescribed exercise, because the athlete sees the ladder as it stands
+   * after their current rung has been applied.
+   */
+  private async assertLegalTarget(
+    movement: { exerciseId: string; exercise: { line: string | null } },
+    exerciseId: string,
+  ) {
+    if (exerciseId === movement.exerciseId) return;
+
+    const line = movement.exercise.line;
+    if (!line) {
+      throw new BadRequestException(
+        'This movement is not on a progression line, so it cannot be swapped',
+      );
+    }
+
+    const onLine = await this.prisma.exercise.findMany({
+      where: { line },
+      select: { id: true, altExerciseId: true },
+    });
+
+    const legal = new Set<string>();
+    for (const e of onLine) {
+      legal.add(e.id);
+      if (e.altExerciseId) legal.add(e.altExerciseId);
+    }
+
+    if (!legal.has(exerciseId)) {
+      throw new BadRequestException(
+        'That exercise is not on this movement’s ladder',
+      );
+    }
+  }
+}

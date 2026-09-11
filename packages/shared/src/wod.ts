@@ -12,6 +12,11 @@ export const wodMovementSchema = z
     // the movement is `reps` every round, which is most of them. Read it
     // through packages/shared/round-split rather than indexing it directly.
     repScheme: z.array(z.number().int().positive()).default([]),
+    // True when the athlete swapped this movement for today (WOD-5), so the
+    // plate can mark it and the swap panel can offer to put it back. The
+    // prescribed movement isn't carried alongside it: the athlete chose what
+    // they see, and showing what they overrode would argue with them.
+    isSwapped: z.boolean().default(false),
     exercise: z.object({
       id: z.string(),
       name: z.string(),
@@ -26,6 +31,12 @@ export const wodMovementSchema = z
       // tracked ladder (e.g. cardio). See ProgressionLine for why this is
       // finer-grained than `pattern`.
       line: progressionLine.nullable(),
+      // Where this exercise sits on that ladder, and its no-equipment
+      // substitute. Carried on the movement so the Today plate's swap panel
+      // (WOD-5) can mark the current rung and offer the alternative without
+      // a second request. Both null off a tracked line.
+      rung: z.number().int().nonnegative().nullable(),
+      altExerciseId: z.string().nullable(),
     }),
   })
   // Mirrors the CHECK constraint on WodMovement. A scheme that doesn't sum to

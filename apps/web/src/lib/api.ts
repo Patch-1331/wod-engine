@@ -5,6 +5,7 @@ import type {
   ScheduleCap,
   SetRoundSplitRequest,
   SetSkillLevelRequest,
+  SetSubstitutionRequest,
   Settings,
   SkillLevel,
   TodayResponse,
@@ -119,6 +120,14 @@ export const api = {
     postJson<WorkoutSession>(
       `/assignments/${assignmentId}/session/split`,
       body,
+    ),
+
+  setSubstitution: (assignmentId: string, body: SetSubstitutionRequest) =>
+    postJson<void>(`/assignments/${assignmentId}/substitutions`, body),
+  clearSubstitution: (assignmentId: string, wodMovementId: string) =>
+    request<void>(
+      `/assignments/${assignmentId}/substitutions/${wodMovementId}`,
+      { method: "DELETE" },
     ),
 
   saveLog: (assignmentId: string, body: LogResultRequest) =>

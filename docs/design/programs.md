@@ -180,9 +180,24 @@ doesn't.
 struggling is answered by swapping down. `HOLD_FLOOR`/`HOLD_FLOOR_SECONDS`
 and their branch come out.
 
-`SkillLevel.lastChange` (`advanced | dropped`, powering the Stats banner)
-needs revisiting: every change is now athlete-initiated, so the banner
-becomes a record of what they did rather than a verdict the app handed down.
+`SkillLevel.lastChange` comes out of the schema entirely. It has exactly one
+consumer (the Stats "level up" banner, `apps/web/src/lib/progressions.ts`)
+and one writer (`logs.service.ts`, from `computeRungChanges`). Once
+advancement stops writing rungs and the banner stops being about level,
+nothing reads it.
+
+### Completion is what gets celebrated
+
+The positive-feedback moment moves off the rung and onto the session: you
+finished the workout. That is the feedback the app owes an athlete, and it
+fires every time rather than on the rare session that happens to cross a
+threshold.
+
+It also reads better under athlete ownership. A banner announcing that the
+app has promoted you is a verdict; a banner marking what you just completed
+is a record. And with per-set logging (below) the celebration can say
+something specific and true — *"8, 8, 8 — up from 8, 8, 6 last week"* —
+instead of a generic "done".
 
 ### Consequences elsewhere
 
@@ -213,14 +228,39 @@ machinery:
   `roundSplits`, `intervalIndex`). A straight-sets session's state is
   "movement 2, set 3 of 5, resting 90s" — neither `RoundTapWorkout` nor
   `IntervalWorkout` fits, and the session model needs non-clock fields.
-- **A new log shape.** `WorkoutLog.resultType` is
-  `time_seconds | rounds_reps | total_reps`, all metcon scores. A sets/reps
-  session has no single scalar result; the honest record is per-set actual
-  reps — a `WorkoutSetLog` table, which also feeds the 3x8 threshold its
-  native input instead of `totalRepsForMovement`'s inference.
+- **A new log shape — `WorkoutSetLog`, per set, in its own table.**
+  `WorkoutLog.resultType` is `time_seconds | rounds_reps | total_reps`, all
+  metcon scores; a sets/reps session has no single scalar result. Store one
+  row per set: movement, set index, prescribed count, actual count. See
+  below for why per-set rather than a per-movement total.
 - **History and Stats.** `workoutLogListItemSchema` requires
   `wodName`/`wodType`/`dominantPattern`, so a non-WOD row needs its own
   shape.
+
+### Why per set, and why a table
+
+A per-movement total (`chin-up: 13`) or a completion flag (`chin-up: done`)
+would both be cheaper. Per-set wins because it is the only record that can
+show an athlete their own progression, which is the point of the feature:
+`3, 3, 3, 2, 2` this week against `3, 3, 2, 2, 1` last week is visible
+improvement that a total of 13 vs. 11 blurs and a flag erases. `5, 5, 3` and
+`4, 4, 4` are different sessions with the same total — one a strong start
+with fatigue, the other even pacing.
+
+It is also what the demoted advancement nudge needs: "three sessions of clean
+3x8, ready for the next rung?" depends on the sets having been clean, which a
+total can reach by accident.
+
+The mid-workout machinery already exists in the right shape —
+`WorkoutSession.roundSplits` is autosaved on every round tap so a locked
+phone never loses progress. Per-set logging is that same discipline applied
+to a different session type: an upsert per set tap.
+
+A table rather than jsonb on the session, though. `roundSplits` gets away
+with jsonb because a metcon's score collapses to one scalar and nothing
+queries across sessions. Per-set data exists precisely to be queried across
+sessions — "my chin-up volume over eight weeks" is the payoff — and that is
+awkward against jsonb.
 
 ### Prescribing by line, not by exercise
 
@@ -250,7 +290,8 @@ generated rows need disambiguated names.
 ## Build order
 
 - **Phase 1 — athlete-owned progression.** Substitution UI on Today, the
-  post-session confirm, demote `computeRungChanges`, delete the drop rule.
+  post-session confirm, demote `computeRungChanges`, delete the drop rule,
+  drop `lastChange` and retarget the Stats banner at workout completion.
   Ships standalone value, no new models, and settles the principle before
   programs are built on it.
 - **Phase 2 — program foundation.** Prisma models + migration (partial unique
@@ -277,7 +318,5 @@ generated rows need disambiguated names.
    volume". Athlete-owned rungs cover progression at the movement level, so
    this is probably later — but an intensity field on `PlanSlot` is cheaper
    to add now than to migrate in.
-4. **`lastChange` semantics** under athlete ownership — what the Stats banner
-   becomes when every change is the athlete's own.
-5. **Stats scoped to a program.** `enrollmentId` on the assignment makes "how
+4. **Stats scoped to a program.** `enrollmentId` on the assignment makes "how
    did Pull-Up Builder go" free to query — in scope, or follow-on?

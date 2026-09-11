@@ -133,14 +133,57 @@ Two consequences:
   WODs like any other pre-start day — which is why the date picker marks
   Mondays.
 
-Losing the quota loses its forgiveness: miss a Wednesday and there's no
-spare day left in the week to absorb it. That's the honest trade for a
-schedule you can predict, and it's consistent with the program owning the
-calendar — a missed day is missed, not slid.
-
 `PlanSlot.priority` now does real work here: a flexible program authored for
 5 days and run at 3 assigns its highest-priority slots to the days the
 athlete picked, in week order.
+
+### Training days are a plan, not a lock
+
+A calendar on its own would lose what the quota was good at — miss Wednesday
+and Wednesday is simply gone. The makeup rule keeps the predictability and
+gives the forgiveness back: **the week stays the unit of completion.**
+Training days say when the app expects you; they don't say when you're
+allowed.
+
+- Miss Wednesday, and Thursday — a rest day — offers *"Train anyway, you're
+  1 short this week."* Doing it counts toward the week.
+- Know Friday won't happen, and Thursday offers to pick up Friday's session
+  early. Same mechanism, opposite direction.
+- End the week still short and **nothing rolls over.** The week resets clean.
+
+The no-rollover rule is deliberate. Carrying missed sessions forward
+compounds debt and turns the app into something the athlete is behind on,
+which is the opposite of celebrating every completed session.
+
+Mechanically this is small: `isRestDay` still answers "is today a scheduled
+training day?", and the rest-day screen gains one affordance, enabled while
+the week's completed count is below the week's session count. The quota
+returns as the *measure*; the calendar is the *expectation*.
+
+For Just WODs there is nothing to sequence — any day can be a WOD day. For a
+program it reframes the week slightly: a program week is a **set of sessions
+to finish this week**, expected on particular days. Miss Wednesday's session,
+do it Thursday, and Thursday's own session shifts to Friday within that week.
+
+### Fixed schedules opt out
+
+Makeup applies to Just WODs and flexible programs only. A fixed program's
+days *are* the program — Pull-Up Builder is Mon/Tue/Thu/Fri because heavy
+pull days want 48 hours between them, and allowing Thursday and Friday to
+compact into Saturday and Sunday would defeat the reason the schedule was
+fixed at all.
+
+So on a fixed program a missed day is missed, and the program screen says so
+plainly when the athlete enrolls rather than at the moment it bites:
+
+```
+FLEXIBLE / JUST WODS
+  missed Wed → "Train anyway, 1 short this week"
+
+PULL-UP BUILDER (fixed)
+  missed Thu → "Thursday's session is missed.
+                Next up: Friday, Pull Strength."
+```
 
 ### Length scales by repeating the core block
 

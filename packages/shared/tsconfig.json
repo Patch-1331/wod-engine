@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "moduleResolution": "node",
+    // TypeScript 7 removed "node" (node10). "bundler" is the replacement
+    // that still pairs with `module: commonjs` -- node16 would force the
+    // ESM twin off "same settings, different module format".
+    "moduleResolution": "bundler",
     "declaration": true,
     "strict": true,
     "esModuleInterop": true,

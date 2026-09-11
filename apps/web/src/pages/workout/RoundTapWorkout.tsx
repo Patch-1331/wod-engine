@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   anchorMovement,
+  capStateAt,
   effectiveRounds,
   hasRepScheme,
   repsForRound,
@@ -10,7 +11,7 @@ import {
   type WorkoutSession,
 } from "@wod-engine/shared";
 import { api } from "../../lib/api";
-import { formatClock } from "../../lib/clock";
+import { elapsedSecondsSince, formatClock } from "../../lib/clock";
 import { roundCompleteCue, capReachedCue } from "../../lib/cues";
 import { MinusIcon, PlusIcon } from "../../components/StepperIcons";
 import { InstructionsCaret, InstructionsPeek } from "../../components/MovementInstructions";
@@ -19,45 +20,60 @@ import { WorkoutChrome } from "./WorkoutChrome";
 
 /**
  * The AMRAP / For Time screen: a running stopwatch the athlete taps once
- * per round. EMOM and Tabata advance themselves instead — see
- * IntervalWorkout.
+ * per round, which stops itself at the WOD's time cap. EMOM and Tabata
+ * advance themselves instead — see IntervalWorkout.
  */
 export function RoundTapWorkout({
   assignmentId,
   wod,
   session,
   isFinished,
+  onFinish,
+  finishPending,
+  stopAtCap,
   chrome,
 }: {
   assignmentId: string;
   wod: Wod;
   session: WorkoutSession;
   isFinished: boolean;
+  onFinish: () => void;
+  finishPending: boolean;
+  stopAtCap: () => void;
   chrome: React.ReactElement<typeof WorkoutChrome>;
 }) {
   const queryClient = useQueryClient();
   const now = useNow(1000, !isFinished);
 
-  // Cues the cap once, even if the user isn't watching the screen — doesn't
-  // force a stop, since an AMRAP may still want a manual Finish tap.
-  const capReachedRef = useRef(false);
-  useEffect(() => {
-    capReachedRef.current = false;
-  }, [session.id]);
-  useEffect(() => {
-    if (isFinished || capReachedRef.current) return;
-    const startedAtMs = new Date(session.startedAt).getTime();
-    const elapsed = Math.max(0, Math.floor((now - startedAtMs) / 1000));
-    if (elapsed >= session.capSeconds) {
-      capReachedRef.current = true;
-      capReachedCue();
-    }
-  }, [now, session, isFinished]);
+  // The clock the whole screen reads: elapsed time, stopped at the cap.
+  const cap = capStateAt(elapsedSecondsSince(session.startedAt, now), session.capSeconds);
 
   const logRoundMutation = useMutation({
     mutationFn: (round: { round: number; atSeconds: number }) => api.logRound(assignmentId, round),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["today"] }),
   });
+
+  // The cap is the end of the workout, so reaching it stops the clock rather
+  // than only announcing itself: the session is finished at the cap, which is
+  // what freezes this readout (`isFinished` stops the ticker) and releases the
+  // wake lock. Cues once and posts once — the ref holds across the second or
+  // two before the finish comes back through the query.
+  const stoppedAtCapRef = useRef(false);
+  useEffect(() => {
+    stoppedAtCapRef.current = false;
+  }, [session.id]);
+  useEffect(() => {
+    if (isFinished || stoppedAtCapRef.current || !cap.isCapped) return;
+    // A round tapped inside the cap's last second still counts, so let it
+    // land first — the API rejects a split posted after the session is
+    // finished, and that tap is the one the athlete just earned.
+    if (logRoundMutation.isPending) return;
+
+    stoppedAtCapRef.current = true;
+    capReachedCue();
+    stopAtCap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cap.isCapped, isFinished, logRoundMutation.isPending]);
 
   const splitMutation = useMutation({
     mutationFn: (roundSplitCount: number | null) => api.setRoundSplit(assignmentId, { roundSplitCount }),
@@ -72,8 +88,9 @@ export function RoundTapWorkout({
   const [splitMode, setSplitMode] = useState<"rounds" | "reps">("rounds");
   const [splitInput, setSplitInput] = useState(5);
 
-  const startedAtMs = new Date(session.startedAt).getTime();
-  const elapsedSeconds = Math.max(0, Math.floor((now - startedAtMs) / 1000));
+  // Splits are stamped with the clock, not the wall clock, so nothing is
+  // logged at a second the athlete never saw.
+  const elapsedSeconds = cap.clockSeconds;
   const progress = Math.min(1, elapsedSeconds / session.capSeconds);
   const splits = [...session.roundSplits].sort((a, b) => b.round - a.round);
   const currentRound = session.roundSplits.length + 1;
@@ -91,6 +108,14 @@ export function RoundTapWorkout({
   function repsForMovement(m: (typeof wod.movements)[number]) {
     return repsForRound(m, currentRound - 1, roundSplitCount);
   }
+
+  // Once the cap lands the clock has stopped, and the screen says so rather
+  // than leaving a live-looking readout: the time goes red and the round
+  // button becomes the one thing left to do. `isFinished` joins it there —
+  // a session finished early is just as stopped — but keeps the clock's own
+  // colour, since finishing the work is not the same as running out of time.
+  const isStopped = cap.isCapped || isFinished;
+  const clockColor = cap.isCapped ? "var(--danger)" : "var(--glow)";
 
   function handleRoundComplete() {
     roundCompleteCue();
@@ -115,17 +140,31 @@ export function RoundTapWorkout({
           style={{
             fontVariantNumeric: "tabular-nums",
             fontFamily: "var(--font-mono)",
-            color: "var(--glow)",
-            textShadow: "0 0 16px var(--glow-tint), 0 0 3px var(--glow)",
+            color: clockColor,
+            textShadow: cap.isCapped
+              ? "0 0 16px var(--danger-tint)"
+              : "0 0 16px var(--glow-tint), 0 0 3px var(--glow)",
           }}
         >
           {formatClock(elapsedSeconds)}
         </div>
         <div className="mx-auto mt-3.5 h-1.5 w-72 max-w-[70vw] overflow-hidden" style={{ background: "var(--panel-2)", border: "1px solid var(--border)" }}>
-          <div className="h-full" style={{ width: `${progress * 100}%`, background: "var(--glow)", boxShadow: "0 0 8px var(--glow)" }} />
+          <div
+            className="h-full"
+            style={{
+              width: `${progress * 100}%`,
+              background: clockColor,
+              boxShadow: cap.isCapped ? "none" : "0 0 8px var(--glow)",
+            }}
+          />
         </div>
-        <div className="mt-1.5 text-[11px]" style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>
-          CAP {formatClock(session.capSeconds)}
+        <div
+          className="mt-1.5 text-[11px] font-semibold tracking-[0.14em]"
+          style={{ color: cap.isCapped ? "var(--danger)" : "var(--ink-faint)", fontFamily: "var(--font-mono)" }}
+        >
+          {cap.isCapped
+            ? `TIME CAP ${formatClock(session.capSeconds)} — CLOCK STOPPED`
+            : `CAP ${formatClock(session.capSeconds)}`}
         </div>
       </div>
 
@@ -301,20 +340,38 @@ export function RoundTapWorkout({
       </div>
 
       <div className="px-5">
-        <button
-          onClick={handleRoundComplete}
-          disabled={logRoundMutation.isPending || isFinished}
-          className="flex w-full flex-col items-center justify-center gap-2"
-          style={{ height: 168, background: "var(--glow)", color: "var(--bg)" }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={34} height={34}>
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-          <span className="text-base font-bold tracking-[0.14em]" style={{ fontFamily: "var(--font-mono)" }}>
-            ROUND COMPLETE
-          </span>
-        </button>
+        {isStopped ? (
+          // The same thumb target, repurposed: with the clock stopped there is
+          // no round left to tap, and logging is the only way on.
+          <button
+            onClick={onFinish}
+            disabled={finishPending}
+            className="flex w-full flex-col items-center justify-center gap-2"
+            style={{ height: 168, background: "var(--glow)", color: "var(--bg)" }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={34} height={34}>
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            <span className="text-base font-bold tracking-[0.14em]" style={{ fontFamily: "var(--font-mono)" }}>
+              LOG RESULT
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={handleRoundComplete}
+            disabled={logRoundMutation.isPending}
+            className="flex w-full flex-col items-center justify-center gap-2"
+            style={{ height: 168, background: "var(--glow)", color: "var(--bg)" }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={34} height={34}>
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+            </svg>
+            <span className="text-base font-bold tracking-[0.14em]" style={{ fontFamily: "var(--font-mono)" }}>
+              ROUND COMPLETE
+            </span>
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5">

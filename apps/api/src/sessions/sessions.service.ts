@@ -9,7 +9,11 @@ import type {
   WodType,
   WorkoutSession,
 } from '@wod-engine/shared';
-import { hasRepScheme, resolveIntervalConfig } from '@wod-engine/shared';
+import {
+  finishSecondsAt,
+  hasRepScheme,
+  resolveIntervalConfig,
+} from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { toRoundSplits, toSessionDto } from './session.mapper';
 import { advanceInterval, mergeRoundSplit } from './session.logic';
@@ -77,6 +81,15 @@ export class SessionsService {
       throw new NotFoundException('No active session for this assignment');
     if (session.status !== 'in_progress') {
       throw new BadRequestException('Session is no longer in progress');
+    }
+
+    // The clock stops at the cap, so there is no such second to have tapped
+    // in. The screen swaps its round button out when the cap lands; this is
+    // the same rule for a client that hasn't caught up with it yet.
+    if (round.atSeconds > session.capSeconds) {
+      throw new BadRequestException(
+        `Round ${round.round} is past this workout's time cap`,
+      );
     }
 
     const splits = toRoundSplits(session.roundSplits);
@@ -174,6 +187,10 @@ export class SessionsService {
     return toSessionDto(updated);
   }
 
+  /**
+   * Ends the session, whether the athlete tapped FINISH or the time cap
+   * stopped the clock for them — the screen posts the same call either way.
+   */
   async finish(userId: string, assignmentId: string): Promise<WorkoutSession> {
     const session = await this.prisma.workoutSession.findFirst({
       where: { assignmentId, userId },
@@ -181,8 +198,17 @@ export class SessionsService {
     if (!session)
       throw new NotFoundException('No active session for this assignment');
 
-    const finishedAtSeconds = Math.round(
+    // Already stopped — the cap ended it, or a FINISH tap did. The first stop
+    // is the real one, so this is a no-op rather than a second finish that
+    // would overwrite the recorded time with a later one.
+    if (session.status === 'completed') return toSessionDto(session);
+
+    // Clamped to the cap rather than taken raw off the wall clock: a tap that
+    // lands after the cap (a locked phone, a tab woken up late) scores the cap,
+    // which is where the athlete's clock stopped.
+    const finishedAtSeconds = finishSecondsAt(
       (Date.now() - session.startedAt.getTime()) / 1000,
+      session.capSeconds,
     );
 
     const updated = await this.prisma.workoutSession.update({

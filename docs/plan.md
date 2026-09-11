@@ -9,10 +9,11 @@ rewrite.
 **In:** curated + generated bodyweight WOD library; a 5-day/week,
 30-minute-cap scheduler; an in-workout stopwatch + tap-to-log round
 tracker (AMRAP/For Time) and an auto-advancing interval timer
-(EMOM/Tabata), both with sound + vibration cues; logging results
-pre-filled from the tracked session; history and PRs. As originally
-scoped this ran entirely on localhost with SQLite; the database is now
-Postgres (#39) and a hosted deploy exists.
+(EMOM/Tabata), both with sound + vibration cues and both stopping
+themselves at the WOD's time cap; logging results pre-filled from the
+tracked session; history and PRs. As originally scoped this ran
+entirely on localhost with SQLite; the database is now Postgres (#39)
+and a hosted deploy exists.
 
 **Out (for now):** accounts/auth, hosted deployment, weighted/equipment-
 heavy movements, and iOS/Android apps. See the GitHub Project (linked
@@ -40,7 +41,7 @@ seeded exercise pool (24 movements) and WOD library (11 WODs).
 | `Wod` | type, timeCapMinutes, movements, isNamed, dominantPattern, work/rest seconds + intervalCount | A reusable workout definition; the interval fields drive the EMOM/Tabata timer. |
 | `ScheduleRule` | maxDaysPerWeek, patternCooldownDays | Config the scheduler reads. |
 | `DailyAssignment` | date, wodId, status | "Today's WOD" — scheduled → in_progress → completed. |
-| `WorkoutSession` | startedAt, capSeconds, roundSplits, status, intervalIndex | The live timer's state, autosaved on every round tap and every interval rollover. |
+| `WorkoutSession` | startedAt, capSeconds, roundSplits, status, intervalIndex | The live timer's state, autosaved on every round tap and every interval rollover. The clock stops at `capSeconds` — reaching it finishes the session rather than counting on. |
 | `WorkoutLog` | resultType, resultValue, rpe, notes | What actually happened — pre-filled from the finished session. |
 | `User` | id | v1 stub; unlocks multi-user/auth later without a migration. |
 

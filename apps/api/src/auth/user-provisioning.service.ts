@@ -14,9 +14,14 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class UserProvisioningService {
   /**
-   * Users provisioned during this process's lifetime. Provisioning is
-   * idempotent, so this is purely to keep the common case off the database —
-   * a cold cache costs one extra upsert, never a wrong result.
+   * Users provisioned during this process's lifetime. Purely to keep the
+   * common case off the database — a cold cache costs one extra round trip,
+   * never a wrong result.
+   *
+   * It is not what makes concurrent calls safe: on a user's very first load
+   * the web app fires several requests at once, so the cache is cold for all
+   * of them and they all reach the database together. That safety comes from
+   * the writes below.
    */
   private readonly known = new Set<string>();
 
@@ -25,24 +30,36 @@ export class UserProvisioningService {
   async ensure(userId: string): Promise<void> {
     if (this.known.has(userId)) return;
 
+    // `createMany({ skipDuplicates: true })` rather than `upsert`, which is
+    // not safe against a concurrent insert of the same key: Postgres raises a
+    // unique violation rather than quietly turning the losing insert into an
+    // update, so parallel first requests used to 500 on `User_pkey`. This
+    // compiles to INSERT ... ON CONFLICT DO NOTHING, where the loser is a
+    // no-op instead of an error.
+    //
+    // It also says what is actually meant. Every `update: {}` here was a
+    // no-op, so none of these writes was ever an update — they are all
+    // "create if missing".
+    //
+    // Order matters inside the transaction: ScheduleRule and SkillLevel carry
+    // foreign keys to User, so the User row goes first.
     await this.prisma.$transaction([
-      this.prisma.user.upsert({
-        where: { id: userId },
-        update: {},
-        create: { id: userId },
+      this.prisma.user.createMany({
+        data: [{ id: userId }],
+        skipDuplicates: true,
       }),
-      this.prisma.scheduleRule.upsert({
-        where: { userId },
-        update: {},
-        create: { userId },
+      this.prisma.scheduleRule.createMany({
+        data: [{ userId }],
+        skipDuplicates: true,
       }),
-      ...progressionLine.options.map((line) =>
-        this.prisma.skillLevel.upsert({
-          where: { userId_line: { userId, line } },
-          update: {},
-          create: { userId, line, rung: 0 },
-        }),
-      ),
+      this.prisma.skillLevel.createMany({
+        data: progressionLine.options.map((line) => ({
+          userId,
+          line,
+          rung: 0,
+        })),
+        skipDuplicates: true,
+      }),
     ]);
 
     this.known.add(userId);

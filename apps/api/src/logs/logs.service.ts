@@ -3,15 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
 import type {
   LogResultRequest,
   WorkoutLog,
   WorkoutLogListItem,
 } from '@wod-engine/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import { toRoundSplits } from '../sessions/session.mapper';
-import { computeRungChanges } from './advancement.logic';
 
 @Injectable()
 export class LogsService {
@@ -19,9 +16,13 @@ export class LogsService {
 
   /**
    * Creates or replaces the log for an assignment, and marks it completed.
-   * The advancement rule only fires on first creation — editing an already-
-   * logged result (fixing a typo, adding notes later) doesn't re-run it,
-   * since re-running against a rung that already moved would double-advance.
+   *
+   * Saving a result no longer moves any progression rung. The athlete owns
+   * their level: they set it by swapping a movement before training, or by
+   * confirming afterwards what they actually did. An inference drawn from
+   * metcon rounds has no business overruling either, and the drop half of
+   * that inference was actively harmful — a hard session quietly making the
+   * next one easier without asking.
    */
   async upsert(
     userId: string,
@@ -41,11 +42,6 @@ export class LogsService {
     if (!assignment.wodId || !assignment.wod)
       throw new BadRequestException('Rest days have nothing to log');
 
-    const isFirstLog =
-      (await this.prisma.workoutLog.findFirst({
-        where: { assignmentId, userId },
-      })) === null;
-
     const data = {
       resultType: body.resultType,
       resultValue: body.resultValue,
@@ -64,63 +60,7 @@ export class LogsService {
       data: { status: 'completed' },
     });
 
-    if (isFirstLog && assignment.session) {
-      await this.applyAdvancement(
-        userId,
-        assignment.wod.movements,
-        assignment.session,
-      );
-    }
-
     return toLogDto(log);
-  }
-
-  /** Advances or drops progression lines (Feature #2) per the 3x8-to-3x5 rule. */
-  private async applyAdvancement(
-    userId: string,
-    movements: {
-      reps: number;
-      repScheme: number[];
-      exercise: { line: string | null; unit: string };
-    }[],
-    session: { roundSplits: Prisma.JsonValue; roundSplitCount: number | null },
-  ): Promise<void> {
-    const completedRounds = toRoundSplits(session.roundSplits).length;
-
-    const [skillLevels, linedExercises] = await Promise.all([
-      this.prisma.skillLevel.findMany({ where: { userId } }),
-      this.prisma.exercise.findMany({ where: { line: { not: null } } }),
-    ]);
-
-    const currentRung = new Map(skillLevels.map((s) => [s.line, s.rung]));
-    const maxRungByLine = new Map<string, number>();
-    for (const e of linedExercises) {
-      if (!e.line || e.rung === null) continue;
-      maxRungByLine.set(
-        e.line,
-        Math.max(maxRungByLine.get(e.line) ?? 0, e.rung),
-      );
-    }
-
-    const changes = computeRungChanges(
-      movements,
-      completedRounds,
-      session.roundSplitCount,
-      currentRung,
-      maxRungByLine,
-    );
-
-    await Promise.all(
-      changes.map((c) =>
-        this.prisma.skillLevel.update({
-          where: { userId_line: { userId, line: c.line } },
-          data: {
-            rung: c.to,
-            lastChange: c.to > c.from ? 'advanced' : 'dropped',
-          },
-        }),
-      ),
-    );
   }
 
   async getForAssignment(

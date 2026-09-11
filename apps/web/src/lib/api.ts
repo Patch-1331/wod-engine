@@ -5,6 +5,7 @@ import type {
   ScheduleCap,
   SetRoundSplitRequest,
   SetSkillLevelRequest,
+  ProposedRungChange,
   SetSubstitutionRequest,
   Settings,
   SkillLevel,
@@ -122,6 +123,10 @@ export const api = {
       body,
     ),
 
+  proposedRungChanges: (assignmentId: string) =>
+    request<ProposedRungChange[]>(
+      `/assignments/${assignmentId}/substitutions/rung-changes`,
+    ),
   setSubstitution: (assignmentId: string, body: SetSubstitutionRequest) =>
     postJson<void>(`/assignments/${assignmentId}/substitutions`, body),
   clearSubstitution: (assignmentId: string, wodMovementId: string) =>

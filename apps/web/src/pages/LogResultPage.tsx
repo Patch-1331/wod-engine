@@ -5,6 +5,8 @@ import { wasCappedFinish, type ResultType, type WorkoutLog, type WorkoutSession,
 import { api } from "../lib/api";
 import { formatClock } from "../lib/clock";
 import { MinusIcon, PlusIcon } from "../components/StepperIcons";
+import { RungChangeCard } from "../components/RungChangeCard";
+import { useRungChangeCard } from "../lib/rungChangeDismissal";
 
 function resultTypeForWod(wodType: string): ResultType {
   return wodType === "for_time" ? "time_seconds" : "rounds_reps";
@@ -68,6 +70,32 @@ function LogResultForm({
   const [rpe, setRpe] = useState<number | null>(existingLog?.rpe ?? null);
   const [notes, setNotes] = useState(existingLog?.notes ?? "");
 
+  // What today's swaps offer to make permanent (WOD-6). Declining is
+  // remembered per assignment, so coming back to edit a note doesn't re-ask a
+  // question already answered.
+  const { dismissed, dismiss } = useRungChangeCard(assignmentId);
+  const { data: proposals } = useQuery({
+    queryKey: ["rung-changes", assignmentId],
+    queryFn: () => api.proposedRungChanges(assignmentId),
+    enabled: !dismissed,
+  });
+
+  const acceptRungChanges = useMutation({
+    mutationFn: async () => {
+      // Sequential rather than parallel: these are separate rows and a
+      // partial failure should leave the earlier ones written, not race.
+      for (const p of proposals ?? []) {
+        await api.setSkillLevel(p.line, { rung: p.toRung });
+      }
+    },
+    onSuccess: async () => {
+      dismiss();
+      await queryClient.invalidateQueries({ queryKey: ["skillLevels"] });
+      // Today's plate reads through the rung, so it has to be re-derived.
+      await queryClient.invalidateQueries({ queryKey: ["today"] });
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: () => {
       const resultValue =
@@ -127,6 +155,15 @@ function LogResultForm({
           </svg>
           Time cap reached — the clock stopped at {formatClock(session.capSeconds)}
         </div>
+      )}
+
+      {!dismissed && (
+        <RungChangeCard
+          proposals={proposals ?? []}
+          onAccept={() => acceptRungChanges.mutate()}
+          onDismiss={dismiss}
+          isSaving={acceptRungChanges.isPending}
+        />
       )}
 
       <p className="mt-6 text-xs font-semibold tracking-[0.14em] text-[var(--ink-faint)]" style={{ fontFamily: "var(--font-mono)" }}>

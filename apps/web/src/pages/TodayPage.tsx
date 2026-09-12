@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { effectiveRounds } from "@wod-engine/shared";
+import { effectiveRounds } from "@regimen-works/shared";
 import { api } from "../lib/api";
 import { DigitReadout } from "../components/DigitReadout";
 import { InstructionsCaret, InstructionsPanel } from "../components/MovementInstructions";

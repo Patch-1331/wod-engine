@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { wasCappedFinish, type ResultType, type WorkoutLog, type WorkoutSession, type Wod } from "@wod-engine/shared";
+import { wasCappedFinish, type ResultType, type WorkoutLog, type WorkoutSession, type Wod } from "@regimen-works/shared";
 import { api } from "../lib/api";
 import { formatClock } from "../lib/clock";
 import { MinusIcon, PlusIcon } from "../components/StepperIcons";

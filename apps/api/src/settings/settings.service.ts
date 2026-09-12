@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Settings, UpdateSettings } from '@wod-engine/shared';
+import type { Settings, UpdateSettings } from '@regimen-works/shared';
 import type { ScheduleRule } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 

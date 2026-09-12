@@ -7,7 +7,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { setSubstitutionRequestSchema } from '@wod-engine/shared';
+import { setSubstitutionRequestSchema } from '@regimen-works/shared';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { validateBody } from '../common/validate';
 import { SubstitutionsService } from './substitutions.service';

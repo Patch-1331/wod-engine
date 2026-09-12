@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
-import { updateSettingsSchema } from '@wod-engine/shared';
+import { updateSettingsSchema } from '@regimen-works/shared';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { validateBody } from '../common/validate';
 import { SettingsService } from './settings.service';

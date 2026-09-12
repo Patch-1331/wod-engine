@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { UpdateSettings } from "@wod-engine/shared";
+import type { UpdateSettings } from "@regimen-works/shared";
 import { api } from "../lib/api";
 
 export function SettingsPage() {

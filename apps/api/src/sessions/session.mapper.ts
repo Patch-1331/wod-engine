@@ -2,7 +2,7 @@ import type {
   Prisma,
   WorkoutSession as PrismaWorkoutSession,
 } from '@prisma/client';
-import type { RoundSplit, WorkoutSession } from '@wod-engine/shared';
+import type { RoundSplit, WorkoutSession } from '@regimen-works/shared';
 
 /**
  * `roundSplits` is a jsonb column, so Prisma hands it back as a JsonValue --

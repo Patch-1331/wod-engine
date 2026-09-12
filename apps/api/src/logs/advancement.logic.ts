@@ -22,7 +22,7 @@
  * and their branch were removed with the rest of that authority.
  */
 
-import { totalRepsForMovement } from '@wod-engine/shared';
+import { totalRepsForMovement } from '@regimen-works/shared';
 
 const ADVANCE_THRESHOLD = 24; // 3 sets of 8
 

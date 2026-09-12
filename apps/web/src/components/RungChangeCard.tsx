@@ -1,4 +1,4 @@
-import type { ProposedRungChange } from "@wod-engine/shared";
+import type { ProposedRungChange } from "@regimen-works/shared";
 import { lineLabel } from "../lib/progressions";
 
 /**

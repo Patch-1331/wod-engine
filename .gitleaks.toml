@@ -1,4 +1,4 @@
-# gitleaks configuration for wod-engine.
+# gitleaks configuration for regimen-works.
 # Extends the upstream default ruleset rather than replacing it.
 
 [extend]

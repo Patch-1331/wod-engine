@@ -9,7 +9,7 @@ import {
   roundsFromReps,
   type Wod,
   type WorkoutSession,
-} from "@wod-engine/shared";
+} from "@regimen-works/shared";
 import { api } from "../../lib/api";
 import { elapsedSecondsSince, formatClock } from "../../lib/clock";
 import { roundCompleteCue, capReachedCue } from "../../lib/cues";

@@ -14,7 +14,7 @@ import type {
   WorkoutLog,
   WorkoutLogListItem,
   WorkoutSession,
-} from "@wod-engine/shared";
+} from "@regimen-works/shared";
 
 // Defaults to the "/api" prefix that vite.config.ts proxies to the local API,
 // stripping the prefix on the way. There is no proxy in a deployed build, so

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveIntervalConfig } from "@wod-engine/shared";
+import { resolveIntervalConfig } from "@regimen-works/shared";
 import {
   intervalStateAt,
   movementForInterval,

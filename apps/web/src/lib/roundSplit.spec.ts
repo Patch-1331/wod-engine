@@ -8,7 +8,7 @@ import {
   roundsFromReps,
   schemeRoundCount,
   totalRepsForMovement,
-} from "@wod-engine/shared";
+} from "@regimen-works/shared";
 
 // Fran's Cousin: 21-15-9 of push-ups and jump squats, 45 total each.
 const ladder = { reps: 45, repScheme: [21, 15, 9] };

@@ -1,4 +1,4 @@
-import type { WorkoutLogListItem } from "@wod-engine/shared";
+import type { WorkoutLogListItem } from "@regimen-works/shared";
 
 export function formatResult(resultType: WorkoutLogListItem["resultType"], resultValue: string): string {
   if (resultType === "time_seconds") {

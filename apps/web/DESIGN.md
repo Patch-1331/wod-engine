@@ -1,5 +1,5 @@
 ---
-name: WOD Engine
+name: Regimen Works
 description: A lab-instrument counter that reports your day's training assignment as a live measurement, not a suggestion.
 colors:
   ground: "#0d0906"
@@ -67,13 +67,13 @@ components:
     padding: "16px 12px"
 ---
 
-# Design System: WOD Engine
+# Design System: Regimen Works
 
 ## Overview
 
 **Creative North Star: "The Nixie Laboratory Counter"**
 
-WOD Engine reads out your day's assignment the way a lab instrument reports a measurement, not the way a fitness app pitches a plan. The system is built from one physical object: a bank of glass nixie tubes on a blackened steel instrument panel, each tube a glowing digit reporting a real quantity — a time cap, a round count, a streak, a personal record. Nothing decorates; everything either measures or holds still.
+Regimen Works reads out your day's assignment the way a lab instrument reports a measurement, not the way a fitness app pitches a plan. The system is built from one physical object: a bank of glass nixie tubes on a blackened steel instrument panel, each tube a glowing digit reporting a real quantity — a time cap, a round count, a streak, a personal record. Nothing decorates; everything either measures or holds still.
 
 The world runs on a strict two-layer distinction. Library data — the WOD's name, its movements, its prescribed reps — is engraved: fixed, flat, rendered in warm neutral ink on a recessed plate that never lights up. Live session state — the running clock, the current round, a personal record just set — is the only thing allowed to glow. A visitor should always be able to tell, at a glance and without reading labels, which numbers on screen are the plan and which ones are happening right now.
 

@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { SkillLevel } from '@wod-engine/shared';
+import type { SkillLevel } from '@regimen-works/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()

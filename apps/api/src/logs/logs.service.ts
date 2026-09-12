@@ -7,7 +7,7 @@ import type {
   LogResultRequest,
   WorkoutLog,
   WorkoutLogListItem,
-} from '@wod-engine/shared';
+} from '@regimen-works/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()

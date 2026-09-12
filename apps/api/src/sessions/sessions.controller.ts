@@ -11,7 +11,7 @@ import {
   advanceIntervalSchema,
   logRoundSplitSchema,
   setRoundSplitRequestSchema,
-} from '@wod-engine/shared';
+} from '@regimen-works/shared';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { validateBody } from '../common/validate';
 import { SessionsService } from './sessions.service';

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { SkillLevel } from "@wod-engine/shared";
+import type { SkillLevel } from "@regimen-works/shared";
 import { api, type ApiExercise } from "../lib/api";
 import {
   computeForTimeTrends,

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { logResultRequestSchema } from '@wod-engine/shared';
+import { logResultRequestSchema } from '@regimen-works/shared';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { validateBody } from '../common/validate';
 import { LogsService } from './logs.service';

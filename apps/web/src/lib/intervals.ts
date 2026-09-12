@@ -1,4 +1,4 @@
-import type { IntervalConfig, WodType } from "@wod-engine/shared";
+import type { IntervalConfig, WodType } from "@regimen-works/shared";
 
 export type IntervalPhase = "work" | "rest";
 

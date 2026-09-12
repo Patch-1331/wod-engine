@@ -9,7 +9,7 @@ export default defineConfig({
   // linked workspace package is otherwise served straight to the browser as
   // source — so its runtime exports have to be pre-bundled into ESM first.
   optimizeDeps: {
-    include: ['@wod-engine/shared'],
+    include: ['@regimen-works/shared'],
   },
   server: {
     proxy: {

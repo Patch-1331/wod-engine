@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { AdvanceInterval, IntervalConfig, Wod, WorkoutSession } from "@wod-engine/shared";
+import type { AdvanceInterval, IntervalConfig, Wod, WorkoutSession } from "@regimen-works/shared";
 import { api } from "../../lib/api";
 import { InstructionsCaret, InstructionsPeek } from "../../components/MovementInstructions";
 import { elapsedSecondsSince, formatClock } from "../../lib/clock";

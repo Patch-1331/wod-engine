@@ -8,12 +8,12 @@ import type {
   RoundSplit,
   WodType,
   WorkoutSession,
-} from '@wod-engine/shared';
+} from '@regimen-works/shared';
 import {
   finishSecondsAt,
   hasRepScheme,
   resolveIntervalConfig,
-} from '@wod-engine/shared';
+} from '@regimen-works/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { toRoundSplits, toSessionDto } from './session.mapper';
 import { advanceInterval, mergeRoundSplit } from './session.logic';

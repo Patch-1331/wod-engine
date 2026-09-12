@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { resolveIntervalConfig } from "@wod-engine/shared";
+import { resolveIntervalConfig } from "@regimen-works/shared";
 import { IntervalWorkout } from "./workout/IntervalWorkout";
 import { RoundTapWorkout } from "./workout/RoundTapWorkout";
 import { WorkoutChrome } from "./workout/WorkoutChrome";

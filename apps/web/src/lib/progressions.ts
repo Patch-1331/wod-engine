@@ -1,4 +1,4 @@
-import type { SkillLevel } from "@wod-engine/shared";
+import type { SkillLevel } from "@regimen-works/shared";
 import type { ApiExercise } from "./api";
 
 const LINE_LABELS: Record<string, string> = {

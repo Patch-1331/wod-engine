@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
-import { setSkillLevelRequestSchema } from '@wod-engine/shared';
+import { setSkillLevelRequestSchema } from '@regimen-works/shared';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { validateBody } from '../common/validate';
 import { SkillLevelsService } from './skill-levels.service';

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { progressionLine } from '@wod-engine/shared';
+import { progressionLine } from '@regimen-works/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**

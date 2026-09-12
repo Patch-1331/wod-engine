@@ -1,4 +1,4 @@
-import { progressionLine } from '@wod-engine/shared';
+import { progressionLine } from '@regimen-works/shared';
 import type { PrismaService } from '../prisma/prisma.service';
 import { UserProvisioningService } from './user-provisioning.service';
 

@@ -1,4 +1,4 @@
-import type { RoundSplit } from '@wod-engine/shared';
+import type { RoundSplit } from '@regimen-works/shared';
 
 /**
  * Merges a newly-tapped round split into the existing list.

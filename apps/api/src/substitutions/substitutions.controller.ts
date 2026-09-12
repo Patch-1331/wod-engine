@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   Param,
   Post,
@@ -14,6 +15,18 @@ import { SubstitutionsService } from './substitutions.service';
 @Controller('assignments/:assignmentId/substitutions')
 export class SubstitutionsController {
   constructor(private readonly substitutionsService: SubstitutionsService) {}
+
+  /**
+   * Read before the completion screen renders. Declared above the
+   * `:wodMovementId` routes so "rung-changes" is never taken for a movement id.
+   */
+  @Get('rung-changes')
+  proposedRungChanges(
+    @CurrentUser() userId: string,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.substitutionsService.proposedRungChanges(userId, assignmentId);
+  }
 
   @Post()
   set(

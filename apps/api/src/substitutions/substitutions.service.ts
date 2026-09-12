@@ -4,6 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  proposeRungChanges,
+  type ProposedRungChange,
+} from './rung-changes.logic';
 
 @Injectable()
 export class SubstitutionsService {
@@ -33,6 +37,49 @@ export class SubstitutionsService {
       update: { exerciseId },
       create: { userId, assignmentId, wodMovementId, exerciseId },
     });
+  }
+
+  /**
+   * What this session offers to make permanent (WOD-6) — the lines trained at
+   * a rung other than the one on record.
+   *
+   * Read from the substitutions rather than from the WOD, because the WOD says
+   * what was prescribed and these rows say what was chosen. A swap to an
+   * off-ladder alternative (the no-equipment substitute) carries no rung, so
+   * it proposes nothing: training rows under a table says nothing about where
+   * you are on the pull ladder.
+   */
+  async proposedRungChanges(
+    userId: string,
+    assignmentId: string,
+  ): Promise<ProposedRungChange[]> {
+    const assignment = await this.prisma.dailyAssignment.findFirst({
+      where: { id: assignmentId, userId },
+      select: { id: true },
+    });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+
+    const [substitutions, skillLevels] = await Promise.all([
+      this.prisma.assignmentSubstitution.findMany({
+        where: { userId, assignmentId },
+        include: { exercise: true },
+      }),
+      this.prisma.skillLevel.findMany({ where: { userId } }),
+    ]);
+
+    const trained = substitutions
+      .filter((s) => s.exercise.line !== null && s.exercise.rung !== null)
+      .map((s) => ({
+        line: s.exercise.line!,
+        rung: s.exercise.rung!,
+        exerciseId: s.exercise.id,
+        exerciseName: s.exercise.name,
+      }));
+
+    return proposeRungChanges(
+      trained,
+      new Map(skillLevels.map((s) => [s.line, s.rung])),
+    );
   }
 
   /** Puts the movement back to what the program prescribed. */

@@ -9,18 +9,18 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: wod_engine
-      POSTGRES_PASSWORD: wod_engine
-      POSTGRES_DB: wod_engine
+      POSTGRES_USER: regimen_works
+      POSTGRES_PASSWORD: regimen_works
+      POSTGRES_DB: regimen_works
     ports:
       - "5432:5432"
     volumes:
-      - wod-engine-pgdata:/var/lib/postgresql/data
+      - regimen-works-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wod_engine -d wod_engine"]
+      test: ["CMD-SHELL", "pg_isready -U regimen_works -d regimen_works"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  wod-engine-pgdata:
+  regimen-works-pgdata:

@@ -1,8 +1,13 @@
-# WOD Engine
+# Regimen Works
 
-A daily bodyweight workout generator and training log. Bodyweight + a
-pull-up bar only, ≤30 minutes, ≤5 days a week — CrossFit-inspired WODs
-without the gym membership.
+A program-based training app. Set up your own plan, pick one from the
+library, or just take the day's WOD — the app decides what each session is,
+runs a live tracker through it, logs what actually happened, and reflects
+progress back over time.
+
+"Just WODs" — a generated bodyweight workout, ≤30 minutes, ≤5 days a week —
+is the default program rather than the whole product. The app decides what
+you do; you decide how hard it is.
 
 See [`docs/plan.md`](docs/plan.md) for the full plan and
 [`docs/adr/`](docs/adr) for the reasoning behind the bigger calls.

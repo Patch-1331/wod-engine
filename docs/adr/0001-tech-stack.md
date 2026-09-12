@@ -4,7 +4,7 @@
 
 ## Context
 
-WOD Engine starts as a local-only web app but is meant to grow to hosted
+Regimen Works starts as a local-only web app but is meant to grow to hosted
 web, iOS, and Android without a rewrite. That constraint should drive the
 stack more than any single layer's ergonomics.
 

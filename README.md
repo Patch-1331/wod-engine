@@ -32,6 +32,8 @@ in `packages/shared`.
 ```bash
 npm install   # also builds packages/shared (postinstall) — apps/api needs its compiled dist
 
+docker compose up -d   # local Postgres; the API's Prisma datasource needs it
+
 # API: generate the Prisma client, run the migration, seed the WOD library
 npm run prisma:generate --workspace apps/api
 npm run prisma:migrate --workspace apps/api
@@ -44,6 +46,44 @@ npm run dev:web   # http://localhost:5173
 
 Copy `apps/api/.env.example` to `apps/api/.env` first if it isn't there
 already.
+
+### If you had a local database before the rename
+
+The compose database, user and volume were renamed from `wod_engine` to
+`regimen_works`. `POSTGRES_USER` and `POSTGRES_DB` only take effect when a
+data directory is first initialised, so they rename nothing inside a volume
+that already exists — an old database keeps the old names and the new
+`DATABASE_URL` just fails to connect.
+
+The volume name changed too, so recreating does **not** require deleting
+anything:
+
+```bash
+docker compose down     # note: no -v
+docker compose up -d    # creates the new volume, initialised under the new names
+npm run prisma:migrate --workspace apps/api
+npm run prisma:seed --workspace apps/api
+```
+
+That leaves the old volume on disk, holding whatever local data you had.
+Nothing reads it any more. Remove it once you're satisfied the new stack
+works:
+
+```bash
+docker volume ls | grep pgdata        # find it — see the note below
+docker volume rm <old-volume-name>
+```
+
+Compose prefixes volume names with the **project name, which defaults to the
+directory name**. From a clone in `wod-engine/` the old volume is
+`wod-engine_wod-engine-pgdata`, but from a git worktree it is prefixed with
+that worktree's directory instead — which also means a worktree gets its own
+containers and volumes, and `docker compose down` there does not touch the
+stack your main checkout is running.
+
+Update `apps/api/.env` to the new `DATABASE_URL` as well — `.env.example`
+has it, but your own `.env` is not tracked and will still point at the old
+database.
 
 If you edit `packages/shared`, rebuild it before the API dev server will
 see the change — `npm run build --workspace packages/shared`, or run

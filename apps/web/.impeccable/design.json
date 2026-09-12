@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-09-01T00:00:00Z",
-  "title": "Design System: WOD Engine",
+  "title": "Design System: Regimen Works",
   "extensions": {
     "colorMeta": {
       "ground": { "role": "neutral", "displayName": "Ground", "canonical": "#0d0906", "tonalRamp": ["#342418", "#5c402b", "#845b3d", "#ac774f", "#c09676", "#d2b49e", "#e5d3c6", "#f7f2ee"] },
@@ -81,7 +81,7 @@
   ],
   "narrative": {
     "northStar": "The Nixie Laboratory Counter",
-    "overview": "WOD Engine reads out your day's assignment the way a lab instrument reports a measurement, not the way a fitness app pitches a plan. The system is built from one physical object: a bank of glass nixie tubes on a blackened steel instrument panel, each tube a glowing digit reporting a real quantity — a time cap, a round count, a streak, a personal record. Nothing decorates; everything either measures or holds still.\n\nThe world runs on a strict two-layer distinction. Library data — the WOD's name, its movements, its prescribed reps — is engraved: fixed, flat, rendered in warm neutral ink on a recessed plate that never lights up. Live session state — the running clock, the current round, a personal record just set — is the only thing allowed to glow. A visitor should always be able to tell, at a glance and without reading labels, which numbers on screen are the plan and which ones are happening right now.\n\nThis is a redesign, not an extension: it replaces an earlier warm editorial system (olive ground, amber/teal accents, a condensed display serif) rather than refining it. The old system is anti-reference, not a starting point.",
+    "overview": "Regimen Works reads out your day's assignment the way a lab instrument reports a measurement, not the way a fitness app pitches a plan. The system is built from one physical object: a bank of glass nixie tubes on a blackened steel instrument panel, each tube a glowing digit reporting a real quantity — a time cap, a round count, a streak, a personal record. Nothing decorates; everything either measures or holds still.\n\nThe world runs on a strict two-layer distinction. Library data — the WOD's name, its movements, its prescribed reps — is engraved: fixed, flat, rendered in warm neutral ink on a recessed plate that never lights up. Live session state — the running clock, the current round, a personal record just set — is the only thing allowed to glow. A visitor should always be able to tell, at a glance and without reading labels, which numbers on screen are the plan and which ones are happening right now.\n\nThis is a redesign, not an extension: it replaces an earlier warm editorial system (olive ground, amber/teal accents, a condensed display serif) rather than refining it. The old system is anti-reference, not a starting point.",
     "keyCharacteristics": [
       "Near-black steel-and-glass ground with exactly one glow hue — a Restrained color strategy, not a palette",
       "Fixed content is engraved (flat, neutral, never lit); live content glows",

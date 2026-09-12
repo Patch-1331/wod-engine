@@ -19,7 +19,7 @@ workouts that fit them on day one.
 
 ## Product Purpose
 
-WOD Engine runs a training program. It decides what each day's session
+Regimen Works runs a training program. It decides what each day's session
 is, runs a live tracker for it, logs what actually happened, and reflects
 progress back over time. Success is a user who opens the app, gets a
 session that fits where they are without planning it themselves,
@@ -99,8 +99,10 @@ without a rewrite.
   every live value, engraved warm-gray for fixed labels, JetBrains Mono
   digit banks, Rajdhani display). Treat this as the established visual
   language, not a starting point.
-- No logo or marketing copy exists beyond the plain "WOD Engine" name,
-  which is now the page title.
+- The brand assets are the name **Regimen Works**, which is the page
+  title, and the favicon — a nixie tube seated on an engraved socket,
+  drawn from the design system above. No other logo or marketing copy
+  exists.
 
 ## Product Principles
 

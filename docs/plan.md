@@ -1,8 +1,8 @@
-# WOD Engine — plan
+# Regimen Works — plan
 
-A daily bodyweight workout generator and training log. Local-first web app
-for v1, architected to grow into hosted web, iOS, and Android without a
-rewrite.
+A program-based training app: set up a plan, pick one from the library, or
+just take the day's WOD. Local-first web app for v1, architected to grow
+into hosted web, iOS, and Android without a rewrite.
 
 ## Scope (v1)
 
@@ -51,7 +51,7 @@ TypeScript everywhere, npm workspaces monorepo — see
 [ADR 0001](adr/0001-tech-stack.md).
 
 ```
-wod-engine/
+regimen-works/
   apps/
     api/          NestJS server, Prisma schema + seed, scheduler/generator logic
     web/          React + Vite + Tailwind client
@@ -62,11 +62,9 @@ wod-engine/
 
 ## Roadmap
 
-Tracked as features/stories on the
-[WOD Engine GitHub Project](https://github.com/users/Patch-1331/projects/1) —
-that board is the source of truth for what's shipped, in progress, and
-planned. This doc stays high-level (stack, domain model, architecture)
-and doesn't try to mirror it.
+Tracked in [Linear](https://linear.app/wod-engine) — that workspace is the
+source of truth for what's shipped, in progress, and planned. This doc stays
+high-level (stack, domain model, architecture) and doesn't try to mirror it.
 
 ## Design references
 
